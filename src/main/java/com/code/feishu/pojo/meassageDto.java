@@ -1,0 +1,5 @@
+package com.code.feishu.pojo;
+
+public class meassageDto {
+
+}

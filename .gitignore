@@ -1,0 +1,32 @@
+# ===== 编译输出 =====
+target/
+build/
+out/
+*.class
+
+# ===== IDE 配置 =====
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.swp
+*.swo
+
+# ===== 敏感配置（不要上传到 GitHub） =====
+src/main/resources/application.properties
+
+# ===== 日志 =====
+*.log
+logs/
+
+# ===== 操作系统文件 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== 其他 =====
+*.jar
+*.war
+*.zip
+*.tar.gz
