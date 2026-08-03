@@ -54,9 +54,15 @@ public class MessageRecord {
     private String transType;
     private String source;
 
+    /** 用户可见的序号（从1递增），AI 指令按此编号定位记录 */
+    private Integer sortNum;
+
     /** 0=失败 1=成功，用 Integer 而不是 boolean，方便 SQL 里直接看 0/1 */
     private Integer feishuSent;
     private Integer bitableSent;
+
+    /** 飞书多维表格记录 ID（写表格成功后存下来，删除/更新时用） */
+    private String bitableRecordId;
 
     /** 处理状态：0=待处理 1=已处理 2=失败(进死信) —— 见状态常量 */
     private Integer status;

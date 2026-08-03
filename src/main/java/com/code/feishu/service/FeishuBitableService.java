@@ -105,6 +105,92 @@ public class FeishuBitableService {
                 .body();
     }
 
+    /**
+     * 从写表格的响应中提取 record_id。
+     * 飞书返回格式：{"code":0,"data":{"record":{"record_id":"recxxxx",...}}}
+     */
+    public String extractRecordId(String response) {
+        try {
+            JSONObject json = JSONUtil.parseObj(response);
+            if (json.getInt("code", -1) == 0) {
+                JSONObject data = json.getJSONObject("data");
+                if (data != null) {
+                    JSONObject record = data.getJSONObject("record");
+                    if (record != null) {
+                        return record.getStr("record_id");
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    /**
+     * 删除飞书多维表格中的一条记录。
+     * @param bitableRecordId 飞书表格记录 ID
+     * @return 飞书 API 原始响应
+     */
+    public String deleteRecord(String bitableRecordId) {
+        if (!StringUtils.hasText(bitableRecordId)) {
+            return "{\"code\":-1,\"msg\":\"bitableRecordId 为空\"}";
+        }
+
+        String token = getTenantAccessToken();
+        String url = String.format(
+                "https://open.feishu.cn/open-apis/bitable/v1/apps/%s/tables/%s/records/%s",
+                appToken, tableId, bitableRecordId);
+
+        return HttpRequest.delete(url)
+                .header("Authorization", "Bearer " + token)
+                .execute()
+                .body();
+    }
+
+    /**
+     * 更新飞书多维表格中的一条记录。
+     * @param bitableRecordId 飞书表格记录 ID
+     * @param req 更新后的数据
+     * @return 飞书 API 原始响应
+     */
+    public String updateRecord(String bitableRecordId, MessageSendDTO req) {
+        if (!StringUtils.hasText(bitableRecordId)) {
+            return "{\"code\":-1,\"msg\":\"bitableRecordId 为空\"}";
+        }
+
+        FieldHolder f = normalize(req);
+        Map<String, Object> fields = new HashMap<>();
+
+        if (StringUtils.hasText(f.direction)) fields.put("收支类型", f.direction);
+        if (f.amount != null) fields.put("金额", f.amount.doubleValue());
+        Long ts = toTimestamp(f.happenTime);
+        if (ts != null) fields.put("时间", ts);
+        fields.put("分类", guessCategory(f.merchant, f.channel));
+
+        StringBuilder note = new StringBuilder();
+        if (StringUtils.hasText(f.merchant)) note.append(f.merchant);
+        if (StringUtils.hasText(f.channel))  note.append(" / ").append(f.channel);
+        if (StringUtils.hasText(f.bank))     note.append(" / ").append(f.bank);
+        if (StringUtils.hasText(f.cardTail)) note.append(" 尾号").append(f.cardTail);
+        if (f.balance != null)               note.append(" / 余额¥").append(f.balance);
+        if (StringUtils.hasText(f.raw))      note.append("\n[原文] ").append(f.raw);
+        fields.put("备注", note.toString());
+
+        String token = getTenantAccessToken();
+        JSONObject body = new JSONObject();
+        body.set("fields", fields);
+
+        String url = String.format(
+                "https://open.feishu.cn/open-apis/bitable/v1/apps/%s/tables/%s/records/%s",
+                appToken, tableId, bitableRecordId);
+
+        return HttpRequest.put(url)
+                .header("Authorization", "Bearer " + token)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .body(body.toString())
+                .execute()
+                .body();
+    }
+
     // ---------- token 管理 ----------
 
     private synchronized String getTenantAccessToken() {

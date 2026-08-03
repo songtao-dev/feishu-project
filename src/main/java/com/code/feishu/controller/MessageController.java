@@ -4,8 +4,10 @@ import com.code.feishu.config.RabbitMQConfig;
 import com.code.feishu.dto.MessageSendDTO;
 import com.code.feishu.entity.MessageRecord;
 import com.code.feishu.mapper.MessageRecordMapper;
+import com.code.feishu.service.FeishuBitableService;
 import com.code.feishu.service.MessageParserService;
 import com.code.feishu.vo.MessageParseVO;
+import com.baomidou.mybatisplus.extension.toolkit.Db;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +17,9 @@ import org.springframework.util.StreamUtils;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,13 +40,16 @@ public class MessageController {
     private final MessageParserService parser;
     private final MessageRecordMapper recordMapper;
     private final RabbitTemplate rabbitTemplate;
+    private final FeishuBitableService bitableService;
 
     public MessageController(MessageParserService parser,
                              MessageRecordMapper recordMapper,
-                             RabbitTemplate rabbitTemplate) {
+                             RabbitTemplate rabbitTemplate,
+                             FeishuBitableService bitableService) {
         this.parser = parser;
         this.recordMapper = recordMapper;
         this.rabbitTemplate = rabbitTemplate;
+        this.bitableService = bitableService;
     }
 
     @GetMapping("/ping")
@@ -68,6 +75,7 @@ public class MessageController {
         record.setFeishuSent(0);
         record.setBitableSent(0);
         record.setRetryCount(0);
+        record.setSortNum(getNextSortNum());
         recordMapper.insert(record);
 
         // ③ 投递到 MQ（只发 recordId，消费者异步处理发飞书+写表格）
@@ -86,22 +94,210 @@ public class MessageController {
     }
 
     /**
+     * 批量发送消息。
+     *
+     * 前端一次传多条消息（JSON 数组），后端：
+     *   ① 批量解析每条消息
+     *   ② saveBatch 一次性插入数据库（一条 SQL 插入多条，比循环 insert 高效）
+     *   ③ 循环投递每条记录的 id 到 MQ（复用现有消费者，逐条异步处理）
+     *
+     * 请求体示例：
+     *   [
+     *     {"rawMessage": "尾号1234卡...9.89元...【工商银行】"},
+     *     {"rawMessage": "尾号5678卡...50.00元...【建设银行】"}
+     *   ]
+     *
+     * 也可以传拆分字段：
+     *   [
+     *     {"bank":"工商银行","amount":"9.89","merchant":"牛约堡",...},
+     *     {"bank":"建设银行","amount":"50.00","merchant":"美团",...}
+     *   ]
+     */
+    @PostMapping("/batch-send")
+    public Map<String, Object> batchSend(@RequestBody List<MessageSendDTO> dtoList) {
+        if (dtoList == null || dtoList.isEmpty()) {
+            Map<String, Object> err = new LinkedHashMap<>();
+            err.put("ok", false);
+            err.put("msg", "消息列表为空");
+            return err;
+        }
+
+        // 限制单次最多 100 条，防止恶意大批量
+        if (dtoList.size() > 100) {
+            Map<String, Object> err = new LinkedHashMap<>();
+            err.put("ok", false);
+            err.put("msg", "单次最多批量 100 条，当前：" + dtoList.size());
+            return err;
+        }
+
+        // ① 批量解析 + 构建记录列表
+        int nextSortNum = getNextSortNum();
+        List<MessageRecord> records = new ArrayList<>();
+        for (MessageSendDTO dto : dtoList) {
+            MessageParseVO vo = parser.parse(dto.getRawMessage());
+            fillDtoFromVo(dto, vo);
+            MessageRecord record = buildRecord(dto, vo, "manual");
+            record.setStatus(MessageRecord.STATUS_PENDING);
+            record.setFeishuSent(0);
+            record.setBitableSent(0);
+            record.setRetryCount(0);
+            record.setSortNum(nextSortNum++);
+            records.add(record);
+        }
+
+        // ② 批量插入数据库（saveBatch = 一条 SQL 插入多条，比循环 insert 高效）
+        Db.saveBatch(records);
+
+        // ③ 循环投递到 MQ（复用现有消费者，逐条异步发飞书 + 写表格）
+        for (MessageRecord record : records) {
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.EXCHANGE,
+                    RabbitMQConfig.ROUTING_KEY,
+                    record.getId()
+            );
+        }
+
+        // ④ 返回结果
+        List<Long> ids = new ArrayList<>();
+        for (MessageRecord r : records) {
+            ids.add(r.getId());
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("ok", true);
+        result.put("count", records.size());
+        result.put("recordIds", ids);
+        result.put("msg", "批量接收成功，正在异步处理");
+        return result;
+    }
+
+    /**
+     * 获取下一个 sortNum（用户可见序号）。
+     * 取当前最大值 +1，如果表空则从 1 开始。
+     */
+    private int getNextSortNum() {
+        Integer max = recordMapper.selectObjs(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MessageRecord>()
+                        .select(MessageRecord::getSortNum)
+                        .orderByDesc(MessageRecord::getSortNum)
+                        .last("LIMIT 1")
+        ).stream()
+                .filter(o -> o instanceof Integer)
+                .map(o -> (Integer) o)
+                .findFirst()
+                .orElse(0);
+        return max + 1;
+    }
+
+    /**
      * 查询数据库里的历史记录（最新的 N 条）。
+     * 按 sortNum 降序（最新记录在前），用户看到的编号就是 sortNum。
      * 用法：GET /api/records?limit=20
      */
     @GetMapping("/records")
     public Map<String, Object> records(@RequestParam(defaultValue = "20") int limit) {
         if (limit <= 0 || limit > 500) limit = 20;
-        // 按 id 倒序取最新的 N 条
         var list = recordMapper.selectList(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MessageRecord>()
-                        .orderByDesc(MessageRecord::getId)
+                        .orderByDesc(MessageRecord::getSortNum)
                         .last("LIMIT " + limit)
         );
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("ok", true);
         result.put("total", list.size());
         result.put("records", list);
+        return result;
+    }
+
+    /**
+     * 删除一条记录（按 ID）。
+     * 同步删除飞书多维表格中的对应记录。
+     * 用法：DELETE /api/records/{id}
+     */
+    @DeleteMapping("/records/{id}")
+    public Map<String, Object> deleteRecord(@PathVariable Long id) {
+        MessageRecord record = recordMapper.selectById(id);
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (record == null) {
+            result.put("ok", false);
+            result.put("msg", "记录不存在，id=" + id);
+            return result;
+        }
+
+        // 先删飞书表格（如果有多维表格记录 ID）
+        boolean bitableDeleted = false;
+        if (record.getBitableRecordId() != null && !record.getBitableRecordId().isEmpty()) {
+            try {
+                String resp = bitableService.deleteRecord(record.getBitableRecordId());
+                bitableDeleted = resp != null && resp.contains("\"code\":0");
+            } catch (Exception e) {
+                // 飞书删除失败不阻断数据库删除
+            }
+        }
+
+        recordMapper.deleteById(id);
+        result.put("ok", true);
+        result.put("msg", "删除成功" + (bitableDeleted ? "（飞书表格已同步删除）" : ""));
+        result.put("deleted", record);
+        result.put("bitableDeleted", bitableDeleted);
+        return result;
+    }
+
+    /**
+     * 更新一条记录（按 ID）。
+     * 同步更新飞书多维表格中的对应记录。
+     * 只更新请求体里传了的字段，没传的不动。
+     * 用法：PUT /api/records/{id}  body={"merchant":"嘉豪水果","amount":2}
+     */
+    @PutMapping("/records/{id}")
+    public Map<String, Object> updateRecord(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        MessageRecord record = recordMapper.selectById(id);
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (record == null) {
+            result.put("ok", false);
+            result.put("msg", "记录不存在，id=" + id);
+            return result;
+        }
+
+        // 只更新前端传了的字段
+        if (body.containsKey("merchant")) record.setMerchant((String) body.get("merchant"));
+        if (body.containsKey("amount")) record.setAmount(new java.math.BigDecimal(body.get("amount").toString()));
+        if (body.containsKey("balance")) record.setBalance(new java.math.BigDecimal(body.get("balance").toString()));
+        if (body.containsKey("bank")) record.setBank((String) body.get("bank"));
+        if (body.containsKey("cardTail")) record.setCardTail((String) body.get("cardTail"));
+        if (body.containsKey("happenTime")) record.setHappenTime((String) body.get("happenTime"));
+        if (body.containsKey("direction")) record.setDirection((String) body.get("direction"));
+        if (body.containsKey("channel")) record.setChannel((String) body.get("channel"));
+        if (body.containsKey("transType")) record.setTransType((String) body.get("transType"));
+
+        recordMapper.updateById(record);
+
+        // 同步更新飞书表格
+        boolean bitableUpdated = false;
+        if (record.getBitableRecordId() != null && !record.getBitableRecordId().isEmpty()) {
+            try {
+                MessageSendDTO dto = new MessageSendDTO();
+                dto.setRawMessage(record.getRawMessage());
+                dto.setBank(record.getBank());
+                dto.setCardTail(record.getCardTail());
+                dto.setHappenTime(record.getHappenTime());
+                dto.setDirection(record.getDirection());
+                dto.setChannel(record.getChannel());
+                dto.setMerchant(record.getMerchant());
+                dto.setAmount(record.getAmount());
+                dto.setBalance(record.getBalance());
+                dto.setTransType(record.getTransType());
+
+                String resp = bitableService.updateRecord(record.getBitableRecordId(), dto);
+                bitableUpdated = resp != null && resp.contains("\"code\":0");
+            } catch (Exception e) {
+                // 飞书更新失败不阻断数据库更新
+            }
+        }
+
+        result.put("ok", true);
+        result.put("msg", "更新成功" + (bitableUpdated ? "（飞书表格已同步更新）" : ""));
+        result.put("record", record);
+        result.put("bitableUpdated", bitableUpdated);
         return result;
     }
 

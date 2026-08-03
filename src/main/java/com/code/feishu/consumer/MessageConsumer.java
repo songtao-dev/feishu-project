@@ -90,6 +90,13 @@ public class MessageConsumer {
             try {
                 String resp = bitable.writeRecord(dto);
                 bitableOk = resp != null && resp.contains("\"code\":0");
+                // 写成功后，提取飞书记录 ID 存库（删除/更新时要用）
+                if (bitableOk) {
+                    String bitableRecordId = bitable.extractRecordId(resp);
+                    if (bitableRecordId != null) {
+                        record.setBitableRecordId(bitableRecordId);
+                    }
+                }
             } catch (Exception e) {
                 log.error("[MQ] 写多维表格异常, recordId={}", recordId, e);
             }
