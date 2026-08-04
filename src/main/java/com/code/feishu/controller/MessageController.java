@@ -1,11 +1,14 @@
 package com.code.feishu.controller;
 
 import com.code.feishu.config.RabbitMQConfig;
+import com.code.feishu.context.UserContext;
 import com.code.feishu.dto.MessageSendDTO;
 import com.code.feishu.entity.MessageRecord;
+import com.code.feishu.entity.User;
 import com.code.feishu.mapper.MessageRecordMapper;
 import com.code.feishu.service.FeishuBitableService;
 import com.code.feishu.service.MessageParserService;
+import com.code.feishu.service.UserService;
 import com.code.feishu.vo.MessageParseVO;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -41,15 +44,18 @@ public class MessageController {
     private final MessageRecordMapper recordMapper;
     private final RabbitTemplate rabbitTemplate;
     private final FeishuBitableService bitableService;
+    private final UserService userService;
 
     public MessageController(MessageParserService parser,
                              MessageRecordMapper recordMapper,
                              RabbitTemplate rabbitTemplate,
-                             FeishuBitableService bitableService) {
+                             FeishuBitableService bitableService,
+                             UserService userService) {
         this.parser = parser;
         this.recordMapper = recordMapper;
         this.rabbitTemplate = rabbitTemplate;
         this.bitableService = bitableService;
+        this.userService = userService;
     }
 
     @GetMapping("/ping")
@@ -70,12 +76,14 @@ public class MessageController {
         fillDtoFromVo(dto, vo);
 
         // ② 存入数据库（状态=待处理，飞书/表格还没发）
+        Long userId = UserContext.getUserId();
         MessageRecord record = buildRecord(dto, vo, "manual");
+        record.setUserId(userId);
         record.setStatus(MessageRecord.STATUS_PENDING);
         record.setFeishuSent(0);
         record.setBitableSent(0);
         record.setRetryCount(0);
-        record.setSortNum(getNextSortNum());
+        record.setSortNum(getNextSortNum(userId));
         recordMapper.insert(record);
 
         // ③ 投递到 MQ（只发 recordId，消费者异步处理发飞书+写表格）
@@ -131,12 +139,14 @@ public class MessageController {
         }
 
         // ① 批量解析 + 构建记录列表
-        int nextSortNum = getNextSortNum();
+        Long userId = UserContext.getUserId();
+        int nextSortNum = getNextSortNum(userId);
         List<MessageRecord> records = new ArrayList<>();
         for (MessageSendDTO dto : dtoList) {
             MessageParseVO vo = parser.parse(dto.getRawMessage());
             fillDtoFromVo(dto, vo);
             MessageRecord record = buildRecord(dto, vo, "manual");
+            record.setUserId(userId);
             record.setStatus(MessageRecord.STATUS_PENDING);
             record.setFeishuSent(0);
             record.setBitableSent(0);
@@ -171,13 +181,14 @@ public class MessageController {
     }
 
     /**
-     * 获取下一个 sortNum（用户可见序号）。
-     * 取当前最大值 +1，如果表空则从 1 开始。
+     * 获取下一个 sortNum（用户可见序号，按用户独立递增）。
+     * 取该用户当前最大值 +1，如果该用户无记录则从 1 开始。
      */
-    private int getNextSortNum() {
+    private int getNextSortNum(Long userId) {
         Integer max = recordMapper.selectObjs(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MessageRecord>()
                         .select(MessageRecord::getSortNum)
+                        .eq(MessageRecord::getUserId, userId)
                         .orderByDesc(MessageRecord::getSortNum)
                         .last("LIMIT 1")
         ).stream()
@@ -196,8 +207,10 @@ public class MessageController {
     @GetMapping("/records")
     public Map<String, Object> records(@RequestParam(defaultValue = "20") int limit) {
         if (limit <= 0 || limit > 500) limit = 20;
+        Long userId = UserContext.getUserId();
         var list = recordMapper.selectList(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MessageRecord>()
+                        .eq(MessageRecord::getUserId, userId)
                         .orderByDesc(MessageRecord::getSortNum)
                         .last("LIMIT " + limit)
         );
@@ -220,6 +233,13 @@ public class MessageController {
         if (record == null) {
             result.put("ok", false);
             result.put("msg", "记录不存在，id=" + id);
+            return result;
+        }
+        // 权限校验：只能删自己的记录
+        Long userId = UserContext.getUserId();
+        if (record.getUserId() == null || !record.getUserId().equals(userId)) {
+            result.put("ok", false);
+            result.put("msg", "无权操作此记录");
             return result;
         }
 
@@ -255,6 +275,13 @@ public class MessageController {
         if (record == null) {
             result.put("ok", false);
             result.put("msg", "记录不存在，id=" + id);
+            return result;
+        }
+        // 权限校验：只能改自己的记录
+        Long userId = UserContext.getUserId();
+        if (record.getUserId() == null || !record.getUserId().equals(userId)) {
+            result.put("ok", false);
+            result.put("msg", "无权操作此记录");
             return result;
         }
 
@@ -322,7 +349,17 @@ public class MessageController {
     @PostMapping(value = "/sms", consumes = {"application/json", "application/x-www-form-urlencoded", "text/plain", "*/*"})
     public Map<String, Object> sms(HttpServletRequest request) throws IOException {
 
+        // 先读 body（必须在 getParameter 之前读，否则 form-urlencoded 的 body 会被 Tomcat 消费掉）
         String rawBody = StreamUtils.copyToString(request.getInputStream(), StandardCharsets.UTF_8);
+
+        // token 是 URL 查询参数（?token=<sms_key>），从 query string 取，不触发 body 解析
+        String smsKey = request.getParameter("token");
+
+        // ===== 用 sms_key 定位归属用户（SmsForwarder 无法登录，用 URL 参数 ?token=<sms_key> 认证） =====
+        User user = userService.findBySmsKey(smsKey);
+        if (user == null) {
+            return Map.of("code", -1, "msg", "无效的 sms_key，请在 webhook URL 末尾加上 ?token=<你的sms_key>");
+        }
 
         String content = extractContent(request, rawBody);
 
@@ -338,12 +375,14 @@ public class MessageController {
         MessageParseVO vo = parser.parse(dto.getRawMessage());
         fillDtoFromVo(dto, vo);
 
-        // 存库（状态=待处理，来源=sms）
+        // 存库（状态=待处理，来源=sms，归属到 sms_key 对应的用户）
         MessageRecord record = buildRecord(dto, vo, "sms");
+        record.setUserId(user.getId());
         record.setStatus(MessageRecord.STATUS_PENDING);
         record.setFeishuSent(0);
         record.setBitableSent(0);
         record.setRetryCount(0);
+        record.setSortNum(getNextSortNum(user.getId()));
         recordMapper.insert(record);
 
         // 投递到 MQ（消费者异步发飞书+写表格）

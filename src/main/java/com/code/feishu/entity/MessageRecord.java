@@ -42,6 +42,9 @@ public class MessageRecord {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 用户ID（数据隔离用，所有查询按此过滤） */
+    private Long userId;
+
     private String rawMessage;
     private String bank;
     private String cardTail;

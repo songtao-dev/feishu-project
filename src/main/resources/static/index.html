@@ -90,15 +90,48 @@
   .compare-change { font-size: 12px; margin-top: 2px; }
   .compare-change.up { color: #e53935; }
   .compare-change.down { color: #2d8659; }
+  /* 登录页 */
+  .login-wrap { max-width: 680px; margin: 0 auto; padding: 60px 24px 40px; }
+  .login-logo { text-align: center; font-size: 28px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
+  .login-subtitle { text-align: center; font-size: 14px; color: #999; margin-bottom: 36px; }
+  .login-card { background: #fafafa; border-radius: 16px; padding: 24px 20px; }
+  .login-card .input-box { background: #fff; }
+  .login-card .field-item { margin-bottom: 14px; }
+  .login-card .btn-block { margin-top: 8px; }
+  .login-tip { margin-top: 20px; padding: 12px 14px; background: #fff8e1; border-radius: 10px; font-size: 12px; color: #8d6e63; line-height: 1.6; }
+  /* 导航栏用户区 */
+  .nav-user { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #999; display: flex; align-items: center; gap: 8px; }
+  .nav-user .logout-link { color: #1a1a1a; cursor: pointer; }
+  /* sms_key 提示 */
+  .sms-tip { margin-bottom: 12px; padding: 10px 14px; background: #e3f2fd; border-radius: 10px; font-size: 12px; color: #1565c0; line-height: 1.5; word-break: break-all; }
+  .sms-tip .sms-copy { color: #1a1a1a; font-weight: 600; cursor: pointer; text-decoration: underline; }
 </style>
 </head>
 <body>
 <div id="app">
+  <!-- ===== 登录页 ===== -->
+  <div v-if="!isLoggedIn" class="login-wrap">
+    <div class="login-logo">记账助手</div>
+    <div class="login-subtitle">请登录后使用</div>
+    <div class="login-card">
+      <div class="field-item"><div class="label">用户名</div><input v-model="loginForm.username" class="input-box" placeholder="请输入用户名" /></div>
+      <div class="field-item"><div class="label">密码</div><input v-model="loginForm.password" class="input-box" type="password" placeholder="请输入密码" @keyup.enter="doLogin" /></div>
+      <button class="btn btn-primary btn-block" @click="doLogin" :disabled="loginLoading">{{ loginLoading ? '登录中...' : '登录' }}</button>
+    </div>
+    <div class="login-tip">账号由管理员创建，如需账号请联系管理员。<br />SmsForwarder 用户请在 webhook URL 末尾加上 ?token=你的短信密钥</div>
+  </div>
+
+  <!-- ===== 主应用 ===== -->
+  <template v-if="isLoggedIn">
   <div class="nav">
     <div :class="['nav-tab', mode==='single' && 'active']" @click="mode='single'">记账</div>
     <div :class="['nav-tab', mode==='batch' && 'active']" @click="mode='batch'">批量</div>
     <div :class="['nav-tab', mode==='records' && 'active']" @click="switchRecords">记录</div>
     <div :class="['nav-tab', mode==='stats' && 'active']" @click="switchStats">统计</div>
+    <div class="nav-user">
+      <span>{{ userInfo?.nickname || userInfo?.username }}</span>
+      <span class="logout-link" @click="logout">退出</span>
+    </div>
   </div>
 
   <div class="content">
@@ -155,6 +188,10 @@
 
     <!-- 记录模式 -->
     <template v-if="mode==='records'">
+      <div v-if="smsKey" class="sms-tip">
+        短信转发密钥：<span class="sms-copy" @click="copySmsKey">{{ smsKey }}</span><br />
+        SmsForwarder webhook URL 末尾加 ?token={{ smsKey }}
+      </div>
       <div class="ai-section">
         <div class="label" style="margin-bottom:10px;">助手</div>
         <div class="ai-input-row">
@@ -263,15 +300,89 @@
     <button v-if="mode==='batch'" class="btn btn-ghost" @click="resetBatch">重置</button>
     <button v-if="mode==='batch'" class="btn btn-primary btn-block" style="flex:1;" @click="doBatchSend" :disabled="batchSending">批量发送</button>
   </div>
+  </template>
 </div>
 
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
 <script src="https://unpkg.com/echarts@5/dist/echarts.min.js"></script>
 <script>
-  const { createApp, reactive, ref, nextTick, watch } = Vue;
+  const { createApp, reactive, ref, nextTick, watch, onMounted } = Vue;
   const app = createApp({
     setup() {
+      // ===== 登录态管理 =====
+      const token = ref(localStorage.getItem('token') || '');
+      const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || 'null'));
+      const isLoggedIn = ref(!!token.value);
+      const loginForm = reactive({ username: '', password: '' });
+      const loginLoading = ref(false);
+      const smsKey = ref('');
+
+      /** 统一 fetch 封装：自动带 Authorization 头，401 时清空登录态 */
+      const apiFetch = async (url, opts = {}) => {
+        const headers = { ...(opts.headers || {}) };
+        if (token.value) headers['Authorization'] = 'Bearer ' + token.value;
+        const resp = await fetch(url, { ...opts, headers });
+        if (resp.status === 401) {
+          token.value = ''; userInfo.value = null; isLoggedIn.value = false; smsKey.value = '';
+          localStorage.removeItem('token'); localStorage.removeItem('userInfo');
+          vant.showToast({ type: 'fail', message: '登录已失效，请重新登录' });
+          throw new Error('401');
+        }
+        return resp;
+      };
+
+      const doLogin = async () => {
+        if (!loginForm.username || !loginForm.password) { vant.showToast('请输入用户名和密码'); return; }
+        loginLoading.value = true;
+        try {
+          const resp = await apiFetch('/api/login', {
+            method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({ username: loginForm.username, password: loginForm.password })
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            token.value = data.token;
+            userInfo.value = { userId: data.userId, username: data.username, nickname: data.nickname };
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
+            isLoggedIn.value = true;
+            loginForm.password = '';
+            vant.showToast({ type: 'success', message: '登录成功' });
+            loadSmsKey();
+          } else {
+            vant.showToast({ type: 'fail', message: data.msg || '登录失败' });
+          }
+        } catch { vant.showToast({ type: 'fail', message: '请求失败' }); }
+        finally { loginLoading.value = false; }
+      };
+
+      const logout = async () => {
+        try { await apiFetch('/api/logout', { method: 'POST' }); } catch {}
+        token.value = ''; userInfo.value = null; isLoggedIn.value = false; smsKey.value = '';
+        localStorage.removeItem('token'); localStorage.removeItem('userInfo');
+      };
+
+      const loadSmsKey = async () => {
+        try {
+          const resp = await apiFetch('/api/user/info');
+          const data = await resp.json();
+          if (data.ok) smsKey.value = data.smsKey || '';
+        } catch {}
+      };
+
+      const copySmsKey = () => {
+        if (!smsKey.value) return;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(smsKey.value).then(() => vant.showToast({ type: 'success', message: '已复制' }));
+        } else {
+          vant.showToast({ type: 'success', message: '请手动复制' });
+        }
+      };
+
+      // 已登录状态（刷新页面后）自动加载 sms_key
+      onMounted(() => { if (isLoggedIn.value) loadSmsKey(); });
+
       const EMPTY_FORM = () => ({ rawMessage: '', bank: '', cardTail: '', happenTime: '', direction: '', channel: '', merchant: '', amount: null, balance: null });
       const form = reactive(EMPTY_FORM());
       const parsing = ref(false), sending = ref(false), parseTip = ref(''), lastStatus = ref('');
@@ -301,7 +412,7 @@
         try {
           const preview = [];
           for (const line of lines) {
-            const resp = await fetch('/api/parse', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ rawMessage: line }) });
+            const resp = await apiFetch('/api/parse', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ rawMessage: line }) });
             const data = await resp.json();
             preview.push({ rawMessage: line, bank: data.bank, amount: data.amount, merchant: data.merchant, direction: data.direction });
           }
@@ -315,7 +426,7 @@
         if (!lines.length) { vant.showToast('请先输入内容'); return; }
         batchSending.value = true; lastStatus.value = '发送中...';
         try {
-          const resp = await fetch('/api/batch-send', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(lines.map(l => ({ rawMessage: l }))) });
+          const resp = await apiFetch('/api/batch-send', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(lines.map(l => ({ rawMessage: l }))) });
           const data = await resp.json();
           if (data.ok) { lastStatus.value = '已提交 ' + data.count + ' 条'; vant.showToast({ type: 'success', message: '成功提交 ' + data.count + ' 条' }); }
           else { lastStatus.value = data.msg || '发送失败'; vant.showToast({ type: 'fail', message: data.msg || '发送失败' }); }
@@ -327,7 +438,7 @@
         if (!form.rawMessage?.trim()) { vant.showToast('请先输入内容'); return; }
         aiParsing.value = true; parseTip.value = 'AI 解析中...';
         try {
-          const resp = await fetch('/api/ai-parse', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ text: form.rawMessage }) });
+          const resp = await apiFetch('/api/ai-parse', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ text: form.rawMessage }) });
           const data = await resp.json();
           if (data.success) {
             if (data.bank) form.bank = data.bank; if (data.cardTail) form.cardTail = data.cardTail;
@@ -344,7 +455,7 @@
         if (!form.rawMessage?.trim()) { vant.showToast('请先输入内容'); return; }
         parsing.value = true;
         try {
-          const resp = await fetch('/api/parse', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ rawMessage: form.rawMessage }) });
+          const resp = await apiFetch('/api/parse', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ rawMessage: form.rawMessage }) });
           const data = await resp.json();
           if (data) {
             if (data.bank != null) form.bank = data.bank || ''; if (data.cardTail != null) form.cardTail = data.cardTail || '';
@@ -360,7 +471,7 @@
       const switchRecords = () => { mode.value = 'records'; loadRecords(); };
       const loadRecords = async () => {
         recordsLoading.value = true;
-        try { const resp = await fetch('/api/records?limit=50'); const data = await resp.json(); if (data.ok) records.value = data.records || []; }
+        try { const resp = await apiFetch('/api/records?limit=50'); const data = await resp.json(); if (data.ok) records.value = data.records || []; }
         catch { vant.showToast({ type: 'fail', message: '加载失败' }); }
         finally { recordsLoading.value = false; }
       };
@@ -368,7 +479,7 @@
       const deleteRecord = async (id, merchant) => {
         try {
           await vant.showConfirmDialog({ title: '删除记录', message: '确定删除「' + (merchant || '#' + id) + '」？' });
-          const resp = await fetch('/api/records/' + id, { method: 'DELETE' });
+          const resp = await apiFetch('/api/records/' + id, { method: 'DELETE' });
           const data = await resp.json();
           if (data.ok) { vant.showToast({ type: 'success', message: '已删除' }); loadRecords(); }
           else vant.showToast({ type: 'fail', message: data.msg || '删除失败' });
@@ -383,7 +494,7 @@
 
       const saveEdit = async (id) => {
         try {
-          const resp = await fetch('/api/records/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ ...editForm }) });
+          const resp = await apiFetch('/api/records/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ ...editForm }) });
           const data = await resp.json();
           if (data.ok) { vant.showToast({ type: 'success', message: '已更新' }); editingId.value = null; loadRecords(); }
           else vant.showToast({ type: 'fail', message: data.msg || '更新失败' });
@@ -395,13 +506,13 @@
         if (!aiCommandInput.value?.trim()) { vant.showToast('请输入指令'); return; }
         aiCommanding.value = true; aiReply.value = '处理中...'; aiReplyError.value = false;
         try {
-          const resp = await fetch('/api/ai-command-async', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ text: aiCommandInput.value }) });
+          const resp = await apiFetch('/api/ai-command-async', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ text: aiCommandInput.value }) });
           const data = await resp.json();
           if (data.ok) {
             const taskId = data.taskId;
             const poll = async () => {
               try {
-                const r = await fetch('/api/ai-command-result?taskId=' + taskId);
+                const r = await apiFetch('/api/ai-command-result?taskId=' + taskId);
                 const d = await r.json();
                 if (d.status === 'pending') { aiReply.value = '处理中...'; setTimeout(poll, 500); }
                 else { aiReply.value = d.reply || '执行完成'; aiReplyError.value = d.status === 'error'; aiCommanding.value = false; if (d.status === 'success') loadRecords(); }
@@ -415,12 +526,12 @@
       const doAiQuery = async () => {
         aiCommanding.value = true; aiReply.value = '查询中...'; aiReplyError.value = false;
         try {
-          const resp = await fetch('/api/ai-command-async', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ text: '查询所有记录' }) });
+          const resp = await apiFetch('/api/ai-command-async', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ text: '查询所有记录' }) });
           const data = await resp.json();
           if (data.ok) {
             const taskId = data.taskId;
             const poll = async () => {
-              const r = await fetch('/api/ai-command-result?taskId=' + taskId);
+              const r = await apiFetch('/api/ai-command-result?taskId=' + taskId);
               const d = await r.json();
               if (d.status === 'pending') { aiReply.value = '查询中...'; setTimeout(poll, 500); }
               else { aiReply.value = d.reply || '查询完成'; aiReplyError.value = d.status === 'error'; aiCommanding.value = false; loadRecords(); }
@@ -438,7 +549,7 @@
         try {
           const payload = { ...form };
           if (payload.rawMessage && !payload.rawMessage.trim()) payload.rawMessage = null;
-          const resp = await fetch('/api/send', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(payload) });
+          const resp = await apiFetch('/api/send', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(payload) });
           const data = await resp.json();
           if (data.ok) { lastStatus.value = '已接收，正在异步处理'; vant.showToast({ type: 'success', message: '发送成功' }); }
           else { lastStatus.value = data.msg || '发送失败'; vant.showToast({ type: 'fail', message: data.msg || '发送失败' }); }
@@ -455,10 +566,10 @@
         const range = statsRange.value;
         try {
           const [sumResp, dailyResp, catResp, cmpResp] = await Promise.all([
-            fetch('/api/stats/summary?range=' + range).then(r => r.json()),
-            fetch('/api/stats/daily?range=' + range).then(r => r.json()),
-            fetch('/api/stats/category?range=' + range).then(r => r.json()),
-            fetch('/api/stats/compare?range=' + range).then(r => r.json())
+            apiFetch('/api/stats/summary?range=' + range).then(r => r.json()),
+            apiFetch('/api/stats/daily?range=' + range).then(r => r.json()),
+            apiFetch('/api/stats/category?range=' + range).then(r => r.json()),
+            apiFetch('/api/stats/compare?range=' + range).then(r => r.json())
           ]);
           statsSummary.value = sumResp;
           statsDaily.value = dailyResp.series || [];
@@ -520,6 +631,10 @@
       };
 
       return {
+        // 登录态
+        token, userInfo, isLoggedIn, loginForm, loginLoading, smsKey,
+        doLogin, logout, copySmsKey,
+        // 记账
         form, parsing, sending, parseTip, lastStatus, fillSample, resetAll, doParse, doSend,
         mode, batchText, batchParsing, batchSending, batchPreview, fillBatchSample, resetBatch, doBatchParse, doBatchSend,
         aiParsing, doAiParse,

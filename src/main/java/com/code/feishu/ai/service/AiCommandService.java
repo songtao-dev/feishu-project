@@ -63,7 +63,7 @@ public class AiCommandService {
      * 异步提交指令，立即返回 taskId。
      * 前端用 taskId 轮询 getTask() 获取结果。
      */
-    public String submitCommand(String userInput) {
+    public String submitCommand(String userInput, Long userId) {
         String taskId = UUID.randomUUID().toString().substring(0, 8);
         com.code.feishu.ai.dto.AiCommandTask task = new com.code.feishu.ai.dto.AiCommandTask();
         task.setTaskId(taskId);
@@ -75,7 +75,7 @@ public class AiCommandService {
         // 异步执行（不阻塞当前线程）
         CompletableFuture.runAsync(() -> {
             try {
-                AiCommandResult result = execute(userInput);
+                AiCommandResult result = execute(userInput, userId);
                 task.setStatus(result.isSuccess() ? "success" : "error");
                 task.setReply(result.getReply());
             } catch (Exception e) {
@@ -106,9 +106,10 @@ public class AiCommandService {
      * 理解用户指令并执行。
      *
      * @param userInput 用户的自然语言输入
+     * @param userId    当前用户ID（数据隔离，只看/只操作该用户的记录）
      * @return 执行结果
      */
-    public AiCommandResult execute(String userInput) {
+    public AiCommandResult execute(String userInput, Long userId) {
         AiCommandResult result = new AiCommandResult();
 
         if (userInput == null || userInput.isBlank()) {
@@ -117,9 +118,10 @@ public class AiCommandService {
             return result;
         }
 
-        // 1. 查询最近的记录作为上下文（按 sortNum 降序，最新的在前）
+        // 1. 查询该用户最近的记录作为上下文（按 sortNum 降序，最新的在前）
         List<MessageRecord> recentRecords = recordMapper.selectList(
                 new LambdaQueryWrapper<MessageRecord>()
+                        .eq(MessageRecord::getUserId, userId)
                         .orderByDesc(MessageRecord::getSortNum)
                         .last("LIMIT " + CONTEXT_LIMIT)
         );
@@ -187,9 +189,9 @@ public class AiCommandService {
 
             // 7. 执行指令
             switch (action) {
-                case "delete" -> executeDelete(result, recentRecords);
-                case "update" -> executeUpdate(result, recentRecords);
-                case "query" -> executeQuery(result);
+                case "delete" -> executeDelete(result, recentRecords, userId);
+                case "update" -> executeUpdate(result, recentRecords, userId);
+                case "query" -> executeQuery(result, userId);
                 default -> {
                     result.setSuccess(false);
                     result.setErrorMsg("不支持的操作: " + action);
@@ -211,8 +213,8 @@ public class AiCommandService {
     /**
      * 执行删除操作。同步删除飞书表格记录。
      */
-    private void executeDelete(AiCommandResult result, List<MessageRecord> records) {
-        MessageRecord target = findTarget(result, records);
+    private void executeDelete(AiCommandResult result, List<MessageRecord> records, Long userId) {
+        MessageRecord target = findTarget(result, records, userId);
         if (target == null) {
             result.setSuccess(false);
             result.setReply("没有找到对应的记录");
@@ -239,8 +241,8 @@ public class AiCommandService {
     /**
      * 执行更新操作。
      */
-    private void executeUpdate(AiCommandResult result, List<MessageRecord> records) {
-        MessageRecord target = findTarget(result, records);
+    private void executeUpdate(AiCommandResult result, List<MessageRecord> records, Long userId) {
+        MessageRecord target = findTarget(result, records, userId);
         if (target == null) {
             result.setSuccess(false);
             result.setReply("没有找到对应的记录");
@@ -323,11 +325,12 @@ public class AiCommandService {
     }
 
     /**
-     * 执行查询操作。
+     * 执行查询操作（只查当前用户的记录）。
      */
-    private void executeQuery(AiCommandResult result) {
+    private void executeQuery(AiCommandResult result, Long userId) {
         List<MessageRecord> all = recordMapper.selectList(
                 new LambdaQueryWrapper<MessageRecord>()
+                        .eq(MessageRecord::getUserId, userId)
                         .orderByDesc(MessageRecord::getSortNum)
                         .last("LIMIT 50")
         );
@@ -340,8 +343,9 @@ public class AiCommandService {
 
     /**
      * 根据 target 定位记录。按 sortNum（用户可见编号）来定位。
+     * merchant 兜底查询带 userId 过滤，避免查到别人的记录。
      */
-    private MessageRecord findTarget(AiCommandResult result, List<MessageRecord> records) {
+    private MessageRecord findTarget(AiCommandResult result, List<MessageRecord> records, Long userId) {
         String type = result.getTargetType();
         String value = result.getTargetValue();
 
@@ -364,22 +368,25 @@ public class AiCommandService {
             case "id" -> {
                 if (value == null) yield null;
                 try {
-                    yield recordMapper.selectById(Long.parseLong(value));
+                    MessageRecord r = recordMapper.selectById(Long.parseLong(value));
+                    // 权限校验：只能操作自己的记录
+                    yield (r != null && r.getUserId() != null && r.getUserId().equals(userId)) ? r : null;
                 } catch (NumberFormatException ignored) {
                     yield null;
                 }
             }
             case "merchant" -> {
                 if (value == null) yield null;
-                // 模糊匹配商家名
+                // 模糊匹配商家名（在上下文记录里找）
                 for (MessageRecord r : records) {
                     if (r.getMerchant() != null && r.getMerchant().contains(value)) {
                         yield r;
                     }
                 }
-                // 数据库里再查一次
+                // 数据库里再查一次（按 userId 过滤，避免查到别人的记录）
                 List<MessageRecord> found = recordMapper.selectList(
                         new LambdaQueryWrapper<MessageRecord>()
+                                .eq(MessageRecord::getUserId, userId)
                                 .like(MessageRecord::getMerchant, value)
                                 .orderByDesc(MessageRecord::getId)
                                 .last("LIMIT 1")

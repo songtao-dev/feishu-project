@@ -1,6 +1,7 @@
 package com.code.feishu.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.code.feishu.context.UserContext;
 import com.code.feishu.entity.MessageRecord;
 import com.code.feishu.mapper.MessageRecordMapper;
 import org.springframework.web.bind.annotation.*;
@@ -43,8 +44,9 @@ public class StatisticsController {
             @RequestParam(required = false) String start,
             @RequestParam(required = false) String end) {
 
+        Long userId = UserContext.getUserId();
         LocalDate[] dates = parseRange(range, start, end);
-        List<MessageRecord> list = queryByDateRange(dates[0], dates[1]);
+        List<MessageRecord> list = queryByDateRange(dates[0], dates[1], userId);
 
         BigDecimal totalExpense = sumAmount(list, "支出");
         BigDecimal totalIncome = sumAmount(list, "收入");
@@ -71,8 +73,9 @@ public class StatisticsController {
             @RequestParam(required = false) String start,
             @RequestParam(required = false) String end) {
 
+        Long userId = UserContext.getUserId();
         LocalDate[] dates = parseRange(range, start, end);
-        List<MessageRecord> list = queryByDateRange(dates[0], dates[1]);
+        List<MessageRecord> list = queryByDateRange(dates[0], dates[1], userId);
 
         // 按日期分组统计
         Map<String, BigDecimal> dailyExpense = new TreeMap<>();
@@ -122,8 +125,9 @@ public class StatisticsController {
             @RequestParam(required = false) String end,
             @RequestParam(defaultValue = "merchant") String groupBy) {
 
+        Long userId = UserContext.getUserId();
         LocalDate[] dates = parseRange(range, start, end);
-        List<MessageRecord> list = queryByDateRange(dates[0], dates[1]);
+        List<MessageRecord> list = queryByDateRange(dates[0], dates[1], userId);
 
         // 按指定字段分组（merchant 或 channel）
         Map<String, BigDecimal> categoryMap = list.stream()
@@ -164,11 +168,12 @@ public class StatisticsController {
             @RequestParam(required = false) String start,
             @RequestParam(required = false) String end) {
 
+        Long userId = UserContext.getUserId();
         LocalDate[] dates = parseRange(range, start, end);
         LocalDate[] prevDates = parsePrevRange(dates[0], dates[1], range);
 
-        List<MessageRecord> currentList = queryByDateRange(dates[0], dates[1]);
-        List<MessageRecord> prevList = queryByDateRange(prevDates[0], prevDates[1]);
+        List<MessageRecord> currentList = queryByDateRange(dates[0], dates[1], userId);
+        List<MessageRecord> prevList = queryByDateRange(prevDates[0], prevDates[1], userId);
 
         BigDecimal currentExpense = sumAmount(currentList, "支出");
         BigDecimal currentIncome = sumAmount(currentList, "收入");
@@ -220,12 +225,13 @@ public class StatisticsController {
         }
     }
 
-    /** 按日期范围查询记录 */
-    private List<MessageRecord> queryByDateRange(LocalDate start, LocalDate end) {
+    /** 按日期范围查询记录（带 userId 过滤，数据隔离） */
+    private List<MessageRecord> queryByDateRange(LocalDate start, LocalDate end, Long userId) {
         String startStr = start.toString() + " 00:00:00";
         String endStr = end.toString() + " 23:59:59";
         return recordMapper.selectList(
                 new LambdaQueryWrapper<MessageRecord>()
+                        .eq(MessageRecord::getUserId, userId)
                         .ge(MessageRecord::getHappenTime, startStr)
                         .le(MessageRecord::getHappenTime, endStr)
         );

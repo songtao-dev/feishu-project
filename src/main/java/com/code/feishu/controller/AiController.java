@@ -5,6 +5,7 @@ import com.code.feishu.ai.dto.AiCommandTask;
 import com.code.feishu.ai.dto.AiParseResult;
 import com.code.feishu.ai.service.AiCommandService;
 import com.code.feishu.ai.service.AiParseService;
+import com.code.feishu.context.UserContext;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
@@ -80,8 +81,9 @@ public class AiController {
     @PostMapping("/ai-command")
     public Map<String, Object> aiCommand(@RequestBody Map<String, String> body) {
         String text = body == null ? null : body.get("text");
+        Long userId = UserContext.getUserId();
 
-        AiCommandResult result = aiCommandService.execute(text);
+        AiCommandResult result = aiCommandService.execute(text, userId);
 
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("success", result.isSuccess());
@@ -105,7 +107,8 @@ public class AiController {
     @PostMapping("/ai-command-async")
     public Map<String, Object> submitCommand(@RequestBody Map<String, String> body) {
         String text = body == null ? null : body.get("text");
-        String taskId = aiCommandService.submitCommand(text);
+        Long userId = UserContext.getUserId();
+        String taskId = aiCommandService.submitCommand(text, userId);
 
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("ok", true);
