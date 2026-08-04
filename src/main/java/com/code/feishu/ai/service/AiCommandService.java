@@ -20,6 +20,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * AI 指令理解 + 执行服务。
@@ -43,6 +46,9 @@ public class AiCommandService {
     /** 给 AI 看的记录上下文条数 */
     private static final int CONTEXT_LIMIT = 20;
 
+    /** 异步任务结果存储（taskId → task），5分钟后自动过期 */
+    private static final Map<String, com.code.feishu.ai.dto.AiCommandTask> TASK_STORE = new ConcurrentHashMap<>();
+
     private final AiClient aiClient;
     private final MessageRecordMapper recordMapper;
     private final FeishuBitableService bitableService;
@@ -51,6 +57,49 @@ public class AiCommandService {
         this.aiClient = aiClient;
         this.recordMapper = recordMapper;
         this.bitableService = bitableService;
+    }
+
+    /**
+     * 异步提交指令，立即返回 taskId。
+     * 前端用 taskId 轮询 getTask() 获取结果。
+     */
+    public String submitCommand(String userInput) {
+        String taskId = UUID.randomUUID().toString().substring(0, 8);
+        com.code.feishu.ai.dto.AiCommandTask task = new com.code.feishu.ai.dto.AiCommandTask();
+        task.setTaskId(taskId);
+        task.setStatus("pending");
+        task.setReply("处理中...");
+        task.setCreateTime(System.currentTimeMillis());
+        TASK_STORE.put(taskId, task);
+
+        // 异步执行（不阻塞当前线程）
+        CompletableFuture.runAsync(() -> {
+            try {
+                AiCommandResult result = execute(userInput);
+                task.setStatus(result.isSuccess() ? "success" : "error");
+                task.setReply(result.getReply());
+            } catch (Exception e) {
+                log.error("AI 指令异步处理失败", e);
+                task.setStatus("error");
+                task.setReply("处理失败：" + e.getMessage());
+            }
+        });
+
+        return taskId;
+    }
+
+    /**
+     * 查询异步任务结果。5分钟后自动清理。
+     */
+    public com.code.feishu.ai.dto.AiCommandTask getTask(String taskId) {
+        com.code.feishu.ai.dto.AiCommandTask task = TASK_STORE.get(taskId);
+        if (task == null) return null;
+        // 5分钟过期清理
+        if (task.getCreateTime() < System.currentTimeMillis() - 5 * 60 * 1000) {
+            TASK_STORE.remove(taskId);
+            return null;
+        }
+        return task;
     }
 
     /**

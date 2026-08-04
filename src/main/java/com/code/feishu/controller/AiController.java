@@ -1,6 +1,7 @@
 package com.code.feishu.controller;
 
 import com.code.feishu.ai.dto.AiCommandResult;
+import com.code.feishu.ai.dto.AiCommandTask;
 import com.code.feishu.ai.dto.AiParseResult;
 import com.code.feishu.ai.service.AiCommandService;
 import com.code.feishu.ai.service.AiParseService;
@@ -89,6 +90,48 @@ public class AiController {
         resp.put("result", result.getResult());
         if (!result.isSuccess() && result.getErrorMsg() != null) {
             resp.put("errorMsg", result.getErrorMsg());
+        }
+        return resp;
+    }
+
+    /**
+     * 异步提交 AI 指令。
+     *
+     * 请求：{"text": "帮我删除第三条记录"}
+     * 返回：{"ok":true,"taskId":"abc12345"}
+     *
+     * 前端拿到 taskId 后轮询 /api/ai-command-result 获取结果。
+     */
+    @PostMapping("/ai-command-async")
+    public Map<String, Object> submitCommand(@RequestBody Map<String, String> body) {
+        String text = body == null ? null : body.get("text");
+        String taskId = aiCommandService.submitCommand(text);
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("taskId", taskId);
+        return resp;
+    }
+
+    /**
+     * 查询异步 AI 指令结果。
+     *
+     * 返回：{"ok":true,"status":"success","reply":"已删除记录：水果 13元"}
+     * status = pending / success / error
+     */
+    @GetMapping("/ai-command-result")
+    public Map<String, Object> getCommandResult(@RequestParam String taskId) {
+        AiCommandTask task = aiCommandService.getTask(taskId);
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        if (task == null) {
+            resp.put("ok", false);
+            resp.put("status", "not_found");
+            resp.put("reply", "任务不存在或已过期");
+        } else {
+            resp.put("ok", true);
+            resp.put("status", task.getStatus());
+            resp.put("reply", task.getReply());
         }
         return resp;
     }

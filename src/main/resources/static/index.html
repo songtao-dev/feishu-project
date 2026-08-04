@@ -3,55 +3,26 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>小心超人记账助手</title>
+<title>记账助手</title>
 <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css" />
 <style>
   * { -webkit-tap-highlight-color: transparent; }
-  html, body {
-    margin: 0; padding: 0; background: #ffffff;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-    color: #1a1a1a; -webkit-font-smoothing: antialiased;
-  }
+  html, body { margin: 0; padding: 0; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; color: #1a1a1a; -webkit-font-smoothing: antialiased; }
   #app { max-width: 680px; margin: 0 auto; padding-bottom: 80px; }
-
-  .nav {
-    position: sticky; top: 0; z-index: 50;
-    background: rgba(255,255,255,0.85);
-    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid #f0f0f0;
-    display: flex; align-items: center; justify-content: center;
-    padding: 12px 0;
-  }
-  .nav-tab {
-    font-size: 14px; color: #999; cursor: pointer;
-    padding: 6px 16px; border-radius: 8px; transition: all .2s;
-  }
+  .nav { position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: center; padding: 12px 0; }
+  .nav-tab { font-size: 14px; color: #999; cursor: pointer; padding: 6px 16px; border-radius: 8px; transition: all .2s; }
   .nav-tab.active { color: #1a1a1a; background: #f5f5f5; }
-
   .content { padding: 16px 20px 0; }
   .label { font-size: 13px; font-weight: 500; color: #666; margin-bottom: 8px; }
   .label .hint { font-weight: 400; color: #bbb; font-size: 12px; }
-
-  .input-box {
-    width: 100%; border: 1px solid #e8e8e8; border-radius: 12px;
-    padding: 14px; font-size: 14px; line-height: 1.6;
-    box-sizing: border-box; background: #fafafa;
-    transition: border-color .2s, background .2s;
-    outline: none; resize: none; font-family: inherit;
-  }
+  .input-box { width: 100%; border: 1px solid #e8e8e8; border-radius: 12px; padding: 14px; font-size: 14px; line-height: 1.6; box-sizing: border-box; background: #fafafa; transition: border-color .2s, background .2s; outline: none; resize: none; font-family: inherit; }
   .input-box:focus { border-color: #d0d0d0; background: #fff; }
   .input-box::placeholder { color: #ccc; }
   textarea.input-box { min-height: 120px; }
-
   .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .field-item .input-box { padding: 10px 12px; }
   @media (max-width: 380px) { .field-grid { grid-template-columns: 1fr; } }
-
-  .btn {
-    border: none; border-radius: 10px; padding: 10px 20px;
-    font-size: 14px; font-weight: 500; cursor: pointer;
-    transition: all .15s; display: inline-flex; align-items: center; gap: 6px;
-  }
+  .btn { border: none; border-radius: 10px; padding: 10px 20px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; gap: 6px; }
   .btn-primary { background: #1a1a1a; color: #fff; }
   .btn-primary:active { background: #333; transform: scale(.98); }
   .btn-ghost { background: transparent; color: #666; border: 1px solid #e8e8e8; }
@@ -60,16 +31,8 @@
   .btn-block { width: 100%; justify-content: center; padding: 14px; font-size: 15px; }
   .btn:disabled { opacity: .5; }
   .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-
-  .tip {
-    margin-top: 12px; padding: 10px 14px;
-    background: #f9f9f9; border-radius: 10px;
-    font-size: 13px; color: #888; line-height: 1.5;
-  }
-
+  .tip { margin-top: 12px; padding: 10px 14px; background: #f9f9f9; border-radius: 10px; font-size: 13px; color: #888; line-height: 1.5; }
   .divider { height: 1px; background: #f0f0f0; margin: 24px 0; }
-
-  /* 记录列表 */
   .record-item { padding: 16px 0; border-bottom: 1px solid #f5f5f5; }
   .record-item:last-child { border-bottom: none; }
   .record-row { display: flex; align-items: baseline; gap: 8px; }
@@ -87,46 +50,46 @@
   .btn-delete:active { background: #ffebee; }
   .btn-edit { background: transparent; color: #666; border: 1px solid #e8e8e8; border-radius: 6px; padding: 4px 12px; font-size: 13px; cursor: pointer; }
   .btn-edit:active { background: #f5f5f5; }
-
-  /* 编辑面板 */
   .edit-panel { margin-top: 10px; padding: 14px; background: #fafafa; border-radius: 12px; }
   .edit-panel .field-grid { margin-bottom: 10px; }
   .edit-panel .input-box { padding: 8px 10px; font-size: 13px; }
-
-  /* AI 对话区 */
   .ai-section { background: #fafafa; border-radius: 16px; padding: 16px; margin-bottom: 20px; }
   .ai-input-row { display: flex; gap: 8px; align-items: flex-end; }
   .ai-input-row .input-box { flex: 1; min-height: 44px; max-height: 100px; }
-  .ai-reply {
-    margin-top: 12px; padding: 12px 14px 12px 16px;
-    background: #fff; border-radius: 12px;
-    font-size: 14px; color: #333; line-height: 1.6;
-    border: 1px solid #f0f0f0; border-left: 3px solid #1a1a1a;
-  }
+  .ai-reply { margin-top: 12px; padding: 12px 14px 12px 16px; background: #fff; border-radius: 12px; font-size: 14px; color: #333; line-height: 1.6; border: 1px solid #f0f0f0; border-left: 3px solid #1a1a1a; }
   .ai-reply.success { border-left-color: #2d8659; }
   .ai-reply.error { border-left-color: #e53935; color: #c62828; }
-
-  /* 底部发送栏 */
-  .bottom-bar {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: rgba(255,255,255,0.9);
-    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid #f0f0f0;
-    padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
-    box-sizing: border-box; z-index: 100;
-    max-width: 680px; margin: 0 auto;
-    display: flex; gap: 10px; align-items: center;
-  }
+  .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid #f0f0f0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); box-sizing: border-box; z-index: 100; max-width: 680px; margin: 0 auto; display: flex; gap: 10px; align-items: center; }
   .bottom-bar .status { flex: 1; font-size: 12px; color: #aaa; line-height: 1.4; }
-
   .empty { text-align: center; padding: 60px 0; color: #ccc; font-size: 14px; }
-
   .preview-item { padding: 12px 0; border-bottom: 1px solid #f5f5f5; }
   .preview-item:last-child { border-bottom: none; }
   .preview-row { display: flex; align-items: center; gap: 8px; }
   .preview-idx { font-size: 12px; color: #ccc; width: 24px; }
   .preview-title { flex: 1; font-size: 14px; color: #333; }
   .preview-amount { font-size: 14px; font-weight: 500; color: #1a1a1a; }
+  /* 统计页面 */
+  .stats-range { display: flex; gap: 8px; margin-bottom: 16px; }
+  .range-btn { padding: 8px 20px; border-radius: 8px; font-size: 14px; border: 1px solid #e8e8e8; background: transparent; color: #666; cursor: pointer; transition: all .2s; }
+  .range-btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .stat-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  @media (max-width: 380px) { .stat-cards { grid-template-columns: 1fr; } }
+  .stat-card { padding: 16px; background: #fafafa; border-radius: 12px; }
+  .stat-card .stat-label { font-size: 12px; color: #999; margin-bottom: 4px; }
+  .stat-card .stat-value { font-size: 22px; font-weight: 700; color: #1a1a1a; }
+  .stat-card .stat-value.income { color: #2d8659; }
+  .stat-card .stat-value.expense { color: #1a1a1a; }
+  .stat-card .stat-value.net { color: #e53935; }
+  .chart-section { margin-bottom: 24px; }
+  .chart-title { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 12px; }
+  .chart-box { width: 100%; height: 300px; }
+  .compare-summary { display: flex; gap: 16px; margin-bottom: 12px; }
+  .compare-item { flex: 1; text-align: center; }
+  .compare-item .compare-label { font-size: 12px; color: #999; margin-bottom: 4px; }
+  .compare-item .compare-value { font-size: 18px; font-weight: 600; }
+  .compare-change { font-size: 12px; margin-top: 2px; }
+  .compare-change.up { color: #e53935; }
+  .compare-change.down { color: #2d8659; }
 </style>
 </head>
 <body>
@@ -135,10 +98,11 @@
     <div :class="['nav-tab', mode==='single' && 'active']" @click="mode='single'">记账</div>
     <div :class="['nav-tab', mode==='batch' && 'active']" @click="mode='batch'">批量</div>
     <div :class="['nav-tab', mode==='records' && 'active']" @click="switchRecords">记录</div>
+    <div :class="['nav-tab', mode==='stats' && 'active']" @click="switchStats">统计</div>
   </div>
 
   <div class="content">
-    <!-- ===== 单条模式 ===== -->
+    <!-- 单条模式 -->
     <template v-if="mode==='single'">
       <div style="margin-bottom: 20px;">
         <div class="label">消息内容 <span class="hint">粘贴短信或输入消费描述</span></div>
@@ -170,7 +134,7 @@
       </div>
     </template>
 
-    <!-- ===== 批量模式 ===== -->
+    <!-- 批量模式 -->
     <template v-if="mode==='batch'">
       <div style="margin-bottom: 20px;">
         <div class="label">批量输入 <span class="hint">每行一条短信</span></div>
@@ -184,16 +148,12 @@
         <div class="divider"></div>
         <div class="label">解析预览（{{ batchPreview.length }} 条）</div>
         <div v-for="(item, idx) in batchPreview" :key="idx" class="preview-item">
-          <div class="preview-row">
-            <span class="preview-idx">{{ idx + 1 }}</span>
-            <span class="preview-title">{{ item.bank || '未知' }} · {{ item.merchant || '—' }}</span>
-            <span class="preview-amount">¥{{ item.amount || '?' }}</span>
-          </div>
+          <div class="preview-row"><span class="preview-idx">{{ idx + 1 }}</span><span class="preview-title">{{ item.bank || '未知' }} · {{ item.merchant || '—' }}</span><span class="preview-amount">¥{{ item.amount || '?' }}</span></div>
         </div>
       </div>
     </template>
 
-    <!-- ===== 记录模式 ===== -->
+    <!-- 记录模式 -->
     <template v-if="mode==='records'">
       <div class="ai-section">
         <div class="label" style="margin-bottom:10px;">助手</div>
@@ -203,7 +163,6 @@
         </div>
         <div v-if="aiReply" :class="['ai-reply', aiReplyError ? 'error' : 'success']">{{ aiReply }}</div>
       </div>
-
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
         <div class="label" style="margin:0;">消费记录</div>
         <div style="display:flex; gap:8px;">
@@ -211,9 +170,7 @@
           <button class="btn btn-text" @click="loadRecords" :disabled="recordsLoading">刷新</button>
         </div>
       </div>
-
       <div v-if="records.length === 0 && !recordsLoading" class="empty">暂无记录</div>
-
       <div v-for="r in records" :key="r.id" class="record-item">
         <div class="record-row">
           <span class="record-num">#{{ r.sortNum || r.id }}</span>
@@ -222,18 +179,12 @@
           <span :class="['record-amount', r.direction === '收入' ? 'income' : 'expense']">{{ r.direction === '收入' ? '+' : '-' }}¥{{ r.amount || '0' }}</span>
         </div>
         <div class="record-meta">
-          <span v-if="r.bank">{{ r.bank }}</span>
-          <span v-if="r.cardTail"> · 尾号{{ r.cardTail }}</span>
-          <span v-if="r.channel"> · {{ r.channel }}</span>
-          <span v-if="r.happenTime"> · {{ r.happenTime }}</span>
-          <span v-if="r.balance != null"> · 余额¥{{ r.balance }}</span>
+          <span v-if="r.bank">{{ r.bank }}</span><span v-if="r.cardTail"> · 尾号{{ r.cardTail }}</span><span v-if="r.channel"> · {{ r.channel }}</span><span v-if="r.happenTime"> · {{ r.happenTime }}</span><span v-if="r.balance != null"> · 余额¥{{ r.balance }}</span>
         </div>
         <div class="record-actions">
           <button class="btn-edit" @click="toggleEdit(r.id)">编辑</button>
           <button class="btn-delete" @click="deleteRecord(r.id, r.merchant)">删除</button>
         </div>
-
-        <!-- 编辑面板（默认隐藏） -->
         <div v-if="editingId === r.id" class="edit-panel">
           <div class="field-grid">
             <div class="field-item"><div class="label" style="font-size:12px; margin-bottom:4px;">商家</div><input v-model="editForm.merchant" class="input-box" /></div>
@@ -254,10 +205,58 @@
         </div>
       </div>
     </template>
+
+    <!-- 统计模式 -->
+    <template v-if="mode==='stats'">
+      <div class="stats-range">
+        <button :class="['range-btn', statsRange==='week' && 'active']" @click="switchStatsRange('week')">本周</button>
+        <button :class="['range-btn', statsRange==='month' && 'active']" @click="switchStatsRange('month')">本月</button>
+      </div>
+
+      <!-- 汇总卡片 -->
+      <div class="stat-cards" v-if="statsSummary">
+        <div class="stat-card"><div class="stat-label">总支出</div><div class="stat-value expense">¥{{ fmt(statsSummary.totalExpense) }}</div></div>
+        <div class="stat-card"><div class="stat-label">总收入</div><div class="stat-value income">¥{{ fmt(statsSummary.totalIncome) }}</div></div>
+        <div class="stat-card"><div class="stat-label">净额</div><div class="stat-value net">¥{{ fmt(statsSummary.netAmount) }}</div></div>
+        <div class="stat-card"><div class="stat-label">笔数 / 日均</div><div class="stat-value">{{ statsSummary.expenseCount }} / ¥{{ fmt(statsSummary.avgDaily) }}</div></div>
+      </div>
+
+      <!-- 消费趋势折线图 -->
+      <div class="chart-section">
+        <div class="chart-title">消费趋势</div>
+        <div id="chart-trend" class="chart-box"></div>
+      </div>
+
+      <!-- 分类占比饼图 -->
+      <div class="chart-section">
+        <div class="chart-title">分类占比</div>
+        <div id="chart-category" class="chart-box"></div>
+      </div>
+
+      <!-- 对比柱状图 -->
+      <div class="chart-section" v-if="statsCompare">
+        <div class="chart-title">{{ statsCompare.currentLabel }} vs {{ statsCompare.previousLabel }}</div>
+        <div class="compare-summary">
+          <div class="compare-item">
+            <div class="compare-label">本期支出</div>
+            <div class="compare-value">¥{{ fmt(statsCompare.current.expense) }}</div>
+            <div :class="['compare-change', isUp(statsCompare.expenseChange) ? 'up' : 'down']">{{ statsCompare.expenseChange }}</div>
+          </div>
+          <div class="compare-item">
+            <div class="compare-label">上期支出</div>
+            <div class="compare-value">¥{{ fmt(statsCompare.previous.expense) }}</div>
+            <div class="compare-change">{{ statsCompare.previous.count }} 笔</div>
+          </div>
+        </div>
+        <div id="chart-compare" class="chart-box"></div>
+      </div>
+
+      <div v-if="!statsSummary" class="empty">加载中...</div>
+    </template>
   </div>
 
   <!-- 底部发送栏 -->
-  <div class="bottom-bar" v-if="mode !== 'records'">
+  <div class="bottom-bar" v-if="mode === 'single' || mode === 'batch'">
     <div class="status" v-if="lastStatus">{{ lastStatus }}</div>
     <button v-if="mode==='single'" class="btn btn-ghost" @click="resetAll">重置</button>
     <button v-if="mode==='single'" class="btn btn-primary btn-block" style="flex:1;" @click="doSend" :disabled="sending">发送</button>
@@ -268,30 +267,27 @@
 
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+<script src="https://unpkg.com/echarts@5/dist/echarts.min.js"></script>
 <script>
-  const { createApp, reactive, ref } = Vue;
+  const { createApp, reactive, ref, nextTick, watch } = Vue;
   const app = createApp({
     setup() {
       const EMPTY_FORM = () => ({ rawMessage: '', bank: '', cardTail: '', happenTime: '', direction: '', channel: '', merchant: '', amount: null, balance: null });
       const form = reactive(EMPTY_FORM());
-      const parsing = ref(false);
-      const sending = ref(false);
-      const parseTip = ref('');
-      const lastStatus = ref('');
+      const parsing = ref(false), sending = ref(false), parseTip = ref(''), lastStatus = ref('');
       const mode = ref('single');
-      const batchText = ref('');
-      const batchParsing = ref(false);
-      const batchSending = ref(false);
-      const batchPreview = ref([]);
+      const batchText = ref(''), batchParsing = ref(false), batchSending = ref(false), batchPreview = ref([]);
       const aiParsing = ref(false);
-      const records = ref([]);
-      const recordsLoading = ref(false);
-      const aiCommandInput = ref('');
-      const aiReply = ref('');
-      const aiReplyError = ref(false);
-      const aiCommanding = ref(false);
+      const records = ref([]), recordsLoading = ref(false);
+      const aiCommandInput = ref(''), aiReply = ref(''), aiReplyError = ref(false), aiCommanding = ref(false);
       const editingId = ref(null);
       const editForm = reactive({ merchant: '', amount: '', direction: '', channel: '', bank: '', balance: '' });
+      const statsRange = ref('month'), statsSummary = ref(null), statsCompare = ref(null);
+      const statsDaily = ref([]), statsCategory = ref([]);
+      let trendChart = null, categoryChart = null, compareChart = null;
+
+      const fmt = (v) => { if (v == null) return '0.00'; return Number(v).toFixed(2); };
+      const isUp = (s) => s && s.startsWith('+');
 
       const fillSample = () => { form.rawMessage = '尾号1234卡8月1日00:00支出(消费xx支付-xx餐饮集团有限公司)0.01元，余额0.01元。【xx银行】'; };
       const resetAll = () => { Object.assign(form, EMPTY_FORM()); parseTip.value = ''; lastStatus.value = ''; };
@@ -309,8 +305,7 @@
             const data = await resp.json();
             preview.push({ rawMessage: line, bank: data.bank, amount: data.amount, merchant: data.merchant, direction: data.direction });
           }
-          batchPreview.value = preview;
-          vant.showToast({ type: 'success', message: '解析完成' });
+          batchPreview.value = preview; vant.showToast({ type: 'success', message: '解析完成' });
         } catch { vant.showToast({ type: 'fail', message: '解析失败' }); }
         finally { batchParsing.value = false; }
       };
@@ -318,8 +313,7 @@
       const doBatchSend = async () => {
         const lines = batchText.value.split('\n').map(l => l.trim()).filter(l => l);
         if (!lines.length) { vant.showToast('请先输入内容'); return; }
-        batchSending.value = true;
-        lastStatus.value = '发送中...';
+        batchSending.value = true; lastStatus.value = '发送中...';
         try {
           const resp = await fetch('/api/batch-send', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(lines.map(l => ({ rawMessage: l }))) });
           const data = await resp.json();
@@ -384,7 +378,7 @@
       const toggleEdit = (id) => {
         if (editingId.value === id) { editingId.value = null; return; }
         const r = records.value.find(x => x.id === id);
-        if (r) { editForm.merchant = r.merchant || ''; editForm.amount = r.amount || ''; editForm.direction = r.direction || ''; editForm.channel = r.channel || ''; editForm.bank = r.bank || ''; editForm.balance = r.balance || ''; editingId.value = id; }
+        if (r) { Object.assign(editForm, { merchant: r.merchant || '', amount: r.amount || '', direction: r.direction || '', channel: r.channel || '', bank: r.bank || '', balance: r.balance || '' }); editingId.value = id; }
       };
 
       const saveEdit = async (id) => {
@@ -396,27 +390,44 @@
         } catch { vant.showToast({ type: 'fail', message: '更新失败' }); }
       };
 
+      // ===== AI 异步指令 =====
       const doAiCommand = async () => {
         if (!aiCommandInput.value?.trim()) { vant.showToast('请输入指令'); return; }
         aiCommanding.value = true; aiReply.value = '处理中...'; aiReplyError.value = false;
         try {
-          const resp = await fetch('/api/ai-command', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ text: aiCommandInput.value }) });
+          const resp = await fetch('/api/ai-command-async', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ text: aiCommandInput.value }) });
           const data = await resp.json();
-          if (data.success) { aiReply.value = data.reply || '执行成功'; aiReplyError.value = false; loadRecords(); }
-          else { aiReply.value = data.reply || data.errorMsg || '执行失败'; aiReplyError.value = true; }
-        } catch { aiReply.value = '请求失败'; aiReplyError.value = true; }
-        finally { aiCommanding.value = false; }
+          if (data.ok) {
+            const taskId = data.taskId;
+            const poll = async () => {
+              try {
+                const r = await fetch('/api/ai-command-result?taskId=' + taskId);
+                const d = await r.json();
+                if (d.status === 'pending') { aiReply.value = '处理中...'; setTimeout(poll, 500); }
+                else { aiReply.value = d.reply || '执行完成'; aiReplyError.value = d.status === 'error'; aiCommanding.value = false; if (d.status === 'success') loadRecords(); }
+              } catch { aiReply.value = '查询失败'; aiReplyError.value = true; aiCommanding.value = false; }
+            };
+            poll();
+          } else { aiReply.value = '提交失败'; aiReplyError.value = true; aiCommanding.value = false; }
+        } catch { aiReply.value = '请求失败'; aiReplyError.value = true; aiCommanding.value = false; }
       };
 
       const doAiQuery = async () => {
         aiCommanding.value = true; aiReply.value = '查询中...'; aiReplyError.value = false;
         try {
-          const resp = await fetch('/api/ai-command', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ text: '查询所有记录' }) });
+          const resp = await fetch('/api/ai-command-async', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ text: '查询所有记录' }) });
           const data = await resp.json();
-          if (data.success) { aiReply.value = data.reply || '查询完成'; aiReplyError.value = false; loadRecords(); }
-          else { aiReply.value = data.reply || '查询失败'; aiReplyError.value = true; }
-        } catch { aiReply.value = '请求失败'; aiReplyError.value = true; }
-        finally { aiCommanding.value = false; }
+          if (data.ok) {
+            const taskId = data.taskId;
+            const poll = async () => {
+              const r = await fetch('/api/ai-command-result?taskId=' + taskId);
+              const d = await r.json();
+              if (d.status === 'pending') { aiReply.value = '查询中...'; setTimeout(poll, 500); }
+              else { aiReply.value = d.reply || '查询完成'; aiReplyError.value = d.status === 'error'; aiCommanding.value = false; loadRecords(); }
+            };
+            poll();
+          } else { aiReply.value = '提交失败'; aiReplyError.value = true; aiCommanding.value = false; }
+        } catch { aiReply.value = '请求失败'; aiReplyError.value = true; aiCommanding.value = false; }
       };
 
       const doSend = async () => {
@@ -435,6 +446,79 @@
         finally { sending.value = false; }
       };
 
+      // ===== 统计 =====
+      const switchStats = () => { mode.value = 'stats'; loadStats(); };
+      const switchStatsRange = (r) => { statsRange.value = r; loadStats(); };
+
+      const loadStats = async () => {
+        statsSummary.value = null; statsCompare.value = null;
+        const range = statsRange.value;
+        try {
+          const [sumResp, dailyResp, catResp, cmpResp] = await Promise.all([
+            fetch('/api/stats/summary?range=' + range).then(r => r.json()),
+            fetch('/api/stats/daily?range=' + range).then(r => r.json()),
+            fetch('/api/stats/category?range=' + range).then(r => r.json()),
+            fetch('/api/stats/compare?range=' + range).then(r => r.json())
+          ]);
+          statsSummary.value = sumResp;
+          statsDaily.value = dailyResp.series || [];
+          statsCategory.value = catResp.series || [];
+          statsCompare.value = cmpResp;
+          nextTick(() => { initTrendChart(); initCategoryChart(); initCompareChart(); });
+        } catch (e) { vant.showToast({ type: 'fail', message: '统计加载失败' }); }
+      };
+
+      const initTrendChart = () => {
+        const el = document.getElementById('chart-trend');
+        if (!el) return;
+        if (trendChart) trendChart.dispose();
+        trendChart = echarts.init(el);
+        trendChart.setOption({
+          tooltip: { trigger: 'axis' },
+          grid: { left: 40, right: 20, top: 20, bottom: 30 },
+          xAxis: { type: 'category', data: statsDaily.value.map(d => d.date.substring(5)), axisLabel: { fontSize: 10, rotate: 30 } },
+          yAxis: { type: 'value', axisLabel: { fontSize: 10 } },
+          series: [
+            { name: '支出', type: 'line', smooth: true, data: statsDaily.value.map(d => Number(d.expense) || 0), itemStyle: { color: '#1a1a1a' }, areaStyle: { color: 'rgba(26,26,26,0.08)' } },
+            { name: '收入', type: 'line', smooth: true, data: statsDaily.value.map(d => Number(d.income) || 0), itemStyle: { color: '#2d8659' }, areaStyle: { color: 'rgba(45,134,89,0.08)' } }
+          ]
+        });
+      };
+
+      const initCategoryChart = () => {
+        const el = document.getElementById('chart-category');
+        if (!el) return;
+        if (categoryChart) categoryChart.dispose();
+        categoryChart = echarts.init(el);
+        categoryChart.setOption({
+          tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
+          series: [{
+            type: 'pie', radius: ['40%', '70%'], center: ['50%', '50%'],
+            label: { fontSize: 11, formatter: '{b}\n¥{c}' },
+            data: statsCategory.value.map(c => ({ name: c.name, value: Number(c.value) || 0 }))
+          }]
+        });
+      };
+
+      const initCompareChart = () => {
+        const el = document.getElementById('chart-compare');
+        if (!el || !statsCompare.value) return;
+        if (compareChart) compareChart.dispose();
+        compareChart = echarts.init(el);
+        const c = statsCompare.value;
+        compareChart.setOption({
+          tooltip: { trigger: 'axis' },
+          legend: { data: ['本期', '上期'], bottom: 0, textStyle: { fontSize: 12 } },
+          grid: { left: 40, right: 20, top: 20, bottom: 40 },
+          xAxis: { type: 'category', data: ['支出', '收入', '笔数'], axisLabel: { fontSize: 11 } },
+          yAxis: { type: 'value', axisLabel: { fontSize: 10 } },
+          series: [
+            { name: '本期', type: 'bar', data: [Number(c.current.expense) || 0, Number(c.current.income) || 0, c.current.count], itemStyle: { color: '#1a1a1a' }, barWidth: '30%' },
+            { name: '上期', type: 'bar', data: [Number(c.previous.expense) || 0, Number(c.previous.income) || 0, c.previous.count], itemStyle: { color: '#ccc' }, barWidth: '30%' }
+          ]
+        });
+      };
+
       return {
         form, parsing, sending, parseTip, lastStatus, fillSample, resetAll, doParse, doSend,
         mode, batchText, batchParsing, batchSending, batchPreview, fillBatchSample, resetBatch, doBatchParse, doBatchSend,
@@ -442,6 +526,8 @@
         records, recordsLoading, aiCommandInput, aiReply, aiReplyError, aiCommanding,
         switchRecords, loadRecords, deleteRecord, doAiCommand, doAiQuery,
         editingId, editForm, toggleEdit, saveEdit,
+        statsRange, statsSummary, statsCompare, statsDaily, statsCategory,
+        switchStats, switchStatsRange, fmt, isUp
       };
     }
   });
