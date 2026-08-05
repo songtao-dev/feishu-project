@@ -22,4 +22,6 @@ public class DiaryDTO {
     private String tags;
     /** 日记日期（YYYY-MM-DD，不传默认今天） */
     private String diaryDate;
+    /** 共享日记本ID（不传或null=私人日记；传了=写入对应共享日记本） */
+    private Long groupId;
 }

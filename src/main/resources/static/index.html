@@ -127,7 +127,7 @@
 
   /* ===== 日记模块 ===== */
   /* 月份切换头 */
-  .diary-month-bar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 8px; }
+  .diary-month-bar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 8px; position: relative; }
   .diary-month-bar .month-nav { display: flex; align-items: center; gap: 12px; }
   .diary-month-bar .month-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e8e8e8; background: #fff; color: #666; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
   .diary-month-bar .month-btn:active { background: #f5f5f5; }
@@ -136,51 +136,53 @@
   .diary-month-bar .sort-btn { padding: 6px 12px; font-size: 12px; border: 1px solid #e8e8e8; border-radius: 14px; background: #fff; color: #666; cursor: pointer; }
   .diary-month-bar .sort-btn:active { background: #f5f5f5; }
 
-  /* 月历选择面板 */
-  .calendar-panel { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); width: 280px; background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); z-index: 30; padding: 16px; }
+  /* 月历选择面板：紧贴 month-bar 下方居中，z-index 高于时间轴 */
+  .calendar-panel { position: absolute; top: calc(100% + 8px); left: 16px; right: 16px; background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); z-index: 60; padding: 16px; box-sizing: border-box; }
   .calendar-panel .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .calendar-panel .cal-nav { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e8e8e8; background: #fff; color: #666; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
   .calendar-panel .cal-title { font-size: 16px; font-weight: 600; color: #1a1a1a; }
   .calendar-panel .cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 6px; }
   .calendar-panel .cal-week > div { text-align: center; font-size: 11px; color: #999; padding: 4px 0; font-weight: 500; }
   .calendar-panel .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-  .calendar-panel .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 8px; cursor: pointer; color: #333; transition: all .15s; }
+  .calendar-panel .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 8px; cursor: pointer; color: #333; transition: all .15s; position: relative; }
   .calendar-panel .cal-day.empty { cursor: default; }
   .calendar-panel .cal-day:not(.empty):hover { background: #f5f5f5; }
   .calendar-panel .cal-day.selected { background: #1a1a1a; color: #fff; }
   .calendar-panel .cal-day.today { border: 1px solid #1a1a1a; }
   .calendar-panel .cal-day.has-diary::after { content: ''; position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #52c41a; bottom: 4px; }
-  .calendar-panel .cal-day { position: relative; }
 
   /* 月度统计条 */
   .diary-stat-row { padding: 0 20px 12px; font-size: 12px; color: #999; }
 
-  /* 时间轴容器 */
-  .timeline-wrap { padding: 20px 20px 100px; position: relative; }
-  .timeline-axis { position: absolute; left: 50%; top: 20px; bottom: 100px; width: 2px; background: #e8e8e8; transform: translateX(-1px); }
-  .timeline-row { position: relative; display: flex; align-items: flex-start; min-height: 100px; margin-bottom: 32px; }
-  .timeline-row:nth-child(odd) { margin-top: 16px; }
-  .timeline-row:nth-child(even) { margin-top: 4px; }
-  .timeline-row.left { justify-content: flex-start; }
-  .timeline-row.right { justify-content: flex-end; }
-  .timeline-row.both { justify-content: space-between; }
-  .timeline-node { position: absolute; left: 50%; top: 16px; transform: translateX(-50%); width: 14px; height: 14px; border-radius: 50%; background: #1a1a1a; z-index: 2; box-shadow: 0 0 0 4px #fff, 0 2px 8px rgba(0,0,0,0.15); }
-  .timeline-date { position: absolute; left: 50%; transform: translateX(-50%); top: 36px; font-size: 13px; font-weight: 600; color: #1a1a1a; background: #fff; padding: 4px 10px; z-index: 2; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); white-space: nowrap; }
+  /* 时间轴容器：中轴竖线贯穿整列 */
+  .timeline-wrap { padding: 20px 16px 100px; position: relative; }
+  .timeline-axis { position: absolute; left: 50%; top: 20px; bottom: 100px; width: 2px; background: #e8e8e8; transform: translateX(-1px); z-index: 1; }
 
-  /* 日记卡片（时间轴用） */
-  .diary-card { width: 46%; background: #fafafa; border-radius: 14px; padding: 14px; cursor: pointer; transition: all .2s; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  /*
+   * 时间轴单行：grid 三栏布局 [左列 | 中轴列 | 右列]
+   *   - 左列只放坏心情卡片，右列只放其他心情卡片（严格隔离）
+   *   - 同侧多条卡片纵向堆叠（flex-direction:column），时间轴随之变高
+   *   - 中轴列放节点+日期标签，竖线由全局 .timeline-axis 提供
+   */
+  .timeline-row { position: relative; display: grid; grid-template-columns: 1fr 56px 1fr; align-items: start; min-height: 80px; margin-bottom: 28px; }
+  .timeline-row .tl-left { grid-column: 1; display: flex; flex-direction: column; gap: 10px; padding: 14px 12px 14px 0; align-items: flex-end; }
+  .timeline-row .tl-right { grid-column: 3; display: flex; flex-direction: column; gap: 10px; padding: 14px 0 14px 12px; align-items: flex-start; }
+  .timeline-row .tl-axis { grid-column: 2; display: flex; flex-direction: column; align-items: center; padding-top: 12px; position: relative; z-index: 2; }
+  .timeline-node { width: 14px; height: 14px; border-radius: 50%; background: #1a1a1a; box-shadow: 0 0 0 4px #fff, 0 2px 8px rgba(0,0,0,0.15); }
+  .timeline-date { margin-top: 8px; font-size: 11px; font-weight: 600; color: #1a1a1a; background: #fff; padding: 3px 10px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); white-space: nowrap; }
+
+  /* 日记卡片（时间轴用）：宽度填满所在列 */
+  .diary-card { width: 100%; max-width: 260px; background: #fafafa; border-radius: 14px; padding: 14px; cursor: pointer; transition: all .2s; box-shadow: 0 2px 8px rgba(0,0,0,0.04); box-sizing: border-box; position: relative; }
   .diary-card:active { transform: scale(0.97); background: #f5f5f5; }
-  .diary-card.left-card { margin-right: auto; }
-  .diary-card.right-card { margin-left: auto; }
-  .diary-card:nth-child(odd) { margin-top: 8px; }
-  .diary-card:nth-child(even) { margin-top: 20px; }
   .diary-card .card-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
   .diary-card .card-mood { font-size: 18px; }
   .diary-card .card-weather { font-size: 14px; }
   .diary-card .card-title { font-size: 15px; font-weight: 600; color: #1a1a1a; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .diary-card .card-author { font-size: 11px; color: #1a1a1a; background: #fff; padding: 2px 8px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); white-space: nowrap; max-width: 70px; overflow: hidden; text-overflow: ellipsis; }
   .diary-card .card-preview { font-size: 13px; color: #666; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .diary-card .card-tags { margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap; }
   .diary-card .card-tag { font-size: 11px; padding: 2px 8px; background: #fff; border-radius: 4px; color: #666; }
+  .diary-card.mine { border-left: 3px solid #1a1a1a; }
 
   /* 日记空态 */
   .diary-empty { text-align: center; padding: 80px 20px; color: #ccc; font-size: 14px; }
@@ -190,13 +192,67 @@
   .fab-btn { position: fixed; right: 24px; bottom: calc(80px + env(safe-area-inset-bottom)); width: 52px; height: 52px; border-radius: 50%; background: #1a1a1a; color: #fff; border: none; font-size: 26px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.2); z-index: 90; display: flex; align-items: center; justify-content: center; transition: all .2s; }
   .fab-btn:active { transform: scale(0.92); }
 
-  /* 窄屏适配：左右分列变单列居中 */
+  /* 窄屏适配：左右分列变单列靠左 */
   @media (max-width: 380px) {
-    .timeline-axis { left: 24px; transform: none; }
-    .timeline-node { left: 24px; transform: none; }
-    .timeline-date { left: 24px; transform: none; text-align: left; }
-    .diary-card { width: 100%; margin-left: 52px !important; margin-right: 0 !important; }
+    .timeline-wrap { padding: 20px 12px 100px; }
+    .timeline-axis { left: 20px; transform: none; }
+    .timeline-row { grid-template-columns: 28px 1fr; }
+    .timeline-row .tl-left { grid-column: 2; padding: 10px 0; align-items: flex-start; }
+    .timeline-row .tl-right { grid-column: 2; padding: 10px 0; align-items: flex-start; }
+    .timeline-row .tl-axis { grid-column: 1; padding-top: 10px; }
+    .diary-card { max-width: 100%; }
   }
+
+  /* ===== 共享日记本入口/面板 ===== */
+  .badge-dot { position: absolute; top: -6px; right: -8px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #e53935; color: #fff; font-size: 10px; line-height: 16px; text-align: center; box-sizing: border-box; }
+  .group-panel { position: absolute; top: calc(100% + 4px); right: 16px; width: 260px; max-width: calc(100vw - 32px); background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); z-index: 50; padding: 12px; box-sizing: border-box; max-height: 70vh; overflow-y: auto; }
+  .group-panel .gp-section { padding: 4px 0; border-bottom: 1px solid #f0f0f0; }
+  .group-panel .gp-section:last-of-type { border-bottom: none; }
+  .group-panel .gp-title { font-size: 11px; color: #999; padding: 6px 8px 4px; }
+  .group-panel .gp-item { display: flex; align-items: center; gap: 8px; padding: 10px 8px; border-radius: 10px; cursor: pointer; }
+  .group-panel .gp-item:active { background: #f5f5f5; }
+  .group-panel .gp-item.active { background: #f0f0f0; }
+  .group-panel .gp-emoji { font-size: 16px; }
+  .group-panel .gp-name { flex: 1; font-size: 14px; color: #1a1a1a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .group-panel .gp-meta { font-size: 11px; color: #999; }
+  .group-panel .gp-actions { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; }
+  .group-panel .gp-btn { padding: 10px; font-size: 13px; border: 1px solid #1a1a1a; border-radius: 10px; background: #1a1a1a; color: #fff; cursor: pointer; }
+  .group-panel .gp-btn:active { opacity: 0.85; }
+  .group-panel .gp-btn.ghost { background: #fff; color: #1a1a1a; }
+
+  .group-info-bar { display: flex; align-items: center; gap: 10px; margin: 0 16px 8px; padding: 10px 14px; background: #f5f5f5; border-radius: 12px; font-size: 13px; }
+  /* 面板遮罩：低于面板 z-index(50)，高于时间轴 */
+  .panel-backdrop { position: fixed; inset: 0; z-index: 40; background: transparent; }
+  .group-info-bar .gi-name { font-weight: 600; color: #1a1a1a; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .group-info-bar .gi-meta { font-size: 11px; color: #999; }
+  .group-info-bar .gi-btn { padding: 4px 10px; font-size: 12px; border: 1px solid #e8e8e8; border-radius: 12px; background: #fff; color: #666; cursor: pointer; }
+  .group-info-bar .gi-btn:active { background: #f0f0f0; }
+  .group-info-bar .gi-btn.danger { color: #e53935; border-color: #ffcdd2; }
+
+  /* 共享弹层内部元素 */
+  .pending-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+  .pending-item:last-child { border-bottom: none; }
+  .pending-item .pi-info { flex: 1; min-width: 0; }
+  .pending-item .pi-name { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 2px; }
+  .pending-item .pi-meta { font-size: 12px; color: #999; }
+  .pending-item .pi-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  .invite-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .code-box { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #f5f5f5; border-radius: 10px; margin-bottom: 16px; }
+  .code-box .code-label { font-size: 12px; color: #666; }
+  .code-box .code-value { font-size: 16px; font-weight: 700; color: #1a1a1a; letter-spacing: 2px; flex: 1; font-family: monospace; }
+
+  .members-title { font-size: 13px; color: #666; margin-bottom: 8px; }
+  .member-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f5f5f5; }
+  .member-item:last-child { border-bottom: none; }
+  .member-item .mi-avatar { width: 36px; height: 36px; border-radius: 50%; background: #1a1a1a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; flex-shrink: 0; }
+  .member-item .mi-info { flex: 1; min-width: 0; }
+  .member-item .mi-name { font-size: 14px; color: #1a1a1a; display: flex; align-items: center; gap: 6px; }
+  .member-item .mi-role { font-size: 10px; padding: 1px 6px; background: #1a1a1a; color: #fff; border-radius: 4px; }
+  .member-item .mi-pending { font-size: 10px; padding: 1px 6px; background: #faad14; color: #fff; border-radius: 4px; }
+  .member-item .mi-btn { padding: 4px 10px; font-size: 12px; border: 1px solid #e8e8e8; border-radius: 10px; background: #fff; color: #666; cursor: pointer; flex-shrink: 0; }
+  .member-item .mi-btn:active { background: #f0f0f0; }
+  .member-item .mi-btn.danger { color: #e53935; border-color: #ffcdd2; }
 
   /* ===== 日记表单弹层 ===== */
   .diary-form-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: flex-end; }
@@ -233,6 +289,41 @@
   .diary-detail-sheet .detail-tag { font-size: 12px; padding: 3px 10px; background: #f5f5f5; border-radius: 4px; color: #666; }
   .diary-detail-sheet .detail-actions { display: flex; gap: 8px; margin-top: 24px; }
   .diary-detail-sheet .detail-actions .btn { flex: 1; }
+
+  /* ===== 纯享预览页（iCity风格）===== */
+  .diary-preview-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(20,20,25,0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+  .diary-preview-card { width: 100%; max-width: 560px; background: #fff; border-radius: 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.08); display: flex; flex-direction: column; max-height: calc(100vh - 40px); overflow: hidden; animation: cardIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .diary-preview-nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: #fff; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+  .diary-preview-nav .nav-back { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #666; cursor: pointer; font-weight: 500; padding: 4px 10px; border-radius: 8px; transition: all 0.15s; }
+  .diary-preview-nav .nav-back:hover { background: #f5f5f5; color: #1a1a1a; }
+  .diary-preview-nav .nav-status { font-size: 12px; color: #999; }
+  .diary-preview-nav .nav-status.published { color: #2d8659; }
+  .diary-preview-body { flex: 1; overflow-y: auto; padding: 28px 24px 20px; }
+  .diary-preview-header { text-align: center; margin-bottom: 24px; }
+  .diary-preview-date { font-size: 13px; color: #999; letter-spacing: 1px; font-weight: 500; }
+  .diary-preview-author { font-size: 12px; color: #b0b0b0; margin-top: 6px; }
+  .diary-preview-title { font-size: 24px; font-weight: 700; color: #1a1a1a; line-height: 1.4; margin: 16px 0 12px; letter-spacing: 0.5px; }
+  .diary-preview-meta { display: inline-flex; align-items: center; gap: 12px; padding: 7px 14px; background: #f8f8f8; border-radius: 18px; font-size: 13px; color: #666; }
+  .diary-preview-meta .meta-dot { width: 4px; height: 4px; border-radius: 50%; background: #ddd; }
+  .diary-preview-content { font-size: 15px; color: #2a2a2a; line-height: 1.9; white-space: pre-wrap; word-break: break-word; margin: 20px 0; letter-spacing: 0.2px; min-height: 80px; }
+  .diary-preview-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .diary-preview-tag { font-size: 12px; padding: 5px 12px; background: #f5f5f5; border-radius: 14px; color: #666; }
+  .diary-preview-divider { height: 1px; background: linear-gradient(to right, transparent, #e8e8e8, transparent); margin: 20px 0; }
+  .diary-preview-footer-info { font-size: 11px; color: #bbb; text-align: center; margin-top: 12px; }
+  .diary-preview-actions { padding: 14px 20px calc(14px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #f0f0f0; display: flex; gap: 10px; flex-shrink: 0; }
+  .diary-preview-actions .btn-publish { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; padding: 11px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; flex: 1; transition: opacity 0.15s; }
+  .diary-preview-actions .btn-publish:active { opacity: 0.9; }
+  .diary-preview-actions .btn-publish:disabled { opacity: 0.5; cursor: not-allowed; }
+  .diary-preview-actions .btn-edit { background: #fff; color: #333; border: 1px solid #e8e8e8; padding: 11px 20px; border-radius: 12px; font-size: 14px; font-weight: 500; cursor: pointer; flex: 1; transition: background 0.15s; }
+  .diary-preview-actions .btn-edit:active { background: #f5f5f5; }
+  .diary-preview-actions .btn-delete { background: #fff; color: #e53935; border: 1px solid #ffcdd2; padding: 11px 20px; border-radius: 12px; font-size: 14px; font-weight: 500; cursor: pointer; flex: 1; transition: background 0.15s; }
+  .diary-preview-actions .btn-delete:active { background: #ffebee; }
+  .diary-preview-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+  .diary-preview-badge.draft { background: #f5f5f5; color: #999; }
+  .diary-preview-badge.published { background: #e8f5e9; color: #2d8659; }
+  .diary-status-chip { display: none; }
+  .diary-status-chip.published { display: inline-flex; align-items: center; padding: 2px 8px; background: #e8f5e9; color: #2d8659; border-radius: 8px; font-size: 10px; font-weight: 500; margin-left: 4px; }
 
   /* ===== 日迹模块 ===== */
   .daily-header { display: flex; align-items: center; gap: 10px; padding: 12px 20px 8px; position: relative; }
@@ -506,6 +597,8 @@
 
   <!-- ===== 日记 tab ===== -->
   <template v-if="tab==='diary'">
+    <!-- 面板遮罩：点击空白处关闭月历/共享面板 -->
+    <div v-if="calendarVisible || groupPanelVisible" class="panel-backdrop" @click="calendarVisible=false; groupPanelVisible=false"></div>
     <div style="position: relative;">
       <div class="diary-month-bar">
         <div class="month-nav">
@@ -513,7 +606,13 @@
           <div class="month-text" @click="toggleCalendar">{{ diaryYear }}年{{ diaryMonth }}月</div>
           <button class="month-btn" @click="nextMonth">›</button>
         </div>
-        <button class="sort-btn" @click="toggleSort">{{ diarySortDesc ? '倒序' : '正序' }}</button>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="sort-btn" @click="toggleSort">{{ diarySortDesc ? '倒序' : '正序' }}</button>
+          <button class="sort-btn" style="position:relative;" @click="toggleGroupPanel">
+            {{ currentGroupId ? '当前: ' + (currentGroupName || '共享') : '共享日记' }}
+            <span v-if="pendingCount > 0" class="badge-dot">{{ pendingCount > 9 ? '9+' : pendingCount }}</span>
+          </button>
+        </div>
       </div>
 
       <!-- 月历选择面板 -->
@@ -537,41 +636,84 @@
           </div>
         </div>
       </div>
+
+      <!-- 共享日记下拉面板 -->
+      <div v-if="groupPanelVisible" class="group-panel" @click.stop>
+        <div class="gp-section">
+          <div class="gp-title">我的日记</div>
+          <div :class="['gp-item', !currentGroupId && 'active']" @click="switchToPrivate">
+            <span class="gp-emoji">📝</span>
+            <span class="gp-name">私人日记</span>
+          </div>
+        </div>
+
+        <div class="gp-section" v-if="groupList.length > 0">
+          <div class="gp-title">参与的共享日记本</div>
+          <div v-for="g in groupList" :key="g.id"
+               :class="['gp-item', currentGroupId === g.id && 'active']"
+               @click="switchToGroup(g)">
+            <span class="gp-emoji">👥</span>
+            <span class="gp-name">{{ g.name }}</span>
+            <span class="gp-meta">{{ g.memberCount }}人</span>
+          </div>
+        </div>
+
+        <div class="gp-actions">
+          <button class="gp-btn" @click="openGroupCreate">+ 新建共享日记本</button>
+          <button class="gp-btn ghost" @click="openJoinByCode">输入邀请码加入</button>
+          <button v-if="pendingCount > 0" class="gp-btn ghost" @click="openPending">待确认邀请 ({{ pendingCount }})</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 共享日记本信息条 -->
+    <div v-if="currentGroupId" class="group-info-bar">
+      <span class="gi-name">👥 {{ currentGroupName }}</span>
+      <span class="gi-meta">{{ currentGroupMemberCount }} 人共写</span>
+      <button v-if="currentGroupIsOwner" class="gi-btn" @click="openGroupDetail">管理</button>
+      <button class="gi-btn" @click="openGroupDetail">成员</button>
+      <button class="gi-btn danger" @click="leaveGroup">退出</button>
     </div>
 
     <div class="diary-stat-row" v-if="diaryList.length > 0">
-      本月 {{ diaryList.length }} 篇 · 坏心情 {{ diaryBadCount }} 篇 · 其他 {{ diaryList.length - diaryBadCount }} 篇
+      本月 {{ diaryList.length }} 篇<template v-if="!currentGroupId"> · 坏心情 {{ diaryBadCount }} 篇 · 其他 {{ diaryList.length - diaryBadCount }} 篇</template>
     </div>
 
     <div class="timeline-wrap" v-if="diaryList.length > 0">
       <div class="timeline-axis"></div>
-      <div v-for="group in diaryDisplayGroups" :key="group.date" class="timeline-row" :class="group.side">
-        <div class="timeline-node"></div>
-        <div class="timeline-date">{{ group.dateLabel }}</div>
-
-        <!-- 左侧卡片（坏心情） -->
-        <div v-for="d in group.left" :key="d.id" class="diary-card left-card" @click="openDiaryDetail(d.id)">
-          <div class="card-head">
-            <span class="card-mood">{{ d.moodEmoji }}</span>
-            <span class="card-weather">{{ d.weatherEmoji }}</span>
-            <span class="card-title">{{ d.title || '无题' }}</span>
-          </div>
-          <div class="card-preview">{{ d.preview }}</div>
-          <div class="card-tags" v-if="d.tags && d.tags.length">
-            <span class="card-tag" v-for="t in d.tags" :key="t">{{ t }}</span>
+      <div v-for="group in diaryDisplayGroups" :key="group.date" class="timeline-row">
+        <div class="tl-left">
+          <div v-for="d in group.left" :key="d.id" :class="['diary-card', d.isMine && 'mine']" @click="openDiaryDetail(d.id)">
+            <div class="card-head">
+              <span class="card-mood">{{ d.moodEmoji }}</span>
+              <span class="card-weather">{{ d.weatherEmoji }}</span>
+              <span class="card-title">{{ d.title || '无题' }}</span>
+              <span v-if="d.status === 'published'" class="diary-status-chip published">已发布</span>
+              <span v-if="currentGroupId && d.authorName" class="card-author">{{ d.authorName }}</span>
+            </div>
+            <div class="card-preview">{{ d.preview }}</div>
+            <div class="card-tags" v-if="d.tags && d.tags.length">
+              <span class="card-tag" v-for="t in d.tags" :key="t">{{ t }}</span>
+            </div>
           </div>
         </div>
-
-        <!-- 右侧卡片（其他心情） -->
-        <div v-for="d in group.right" :key="d.id" class="diary-card right-card" @click="openDiaryDetail(d.id)">
-          <div class="card-head">
-            <span class="card-mood">{{ d.moodEmoji }}</span>
-            <span class="card-weather">{{ d.weatherEmoji }}</span>
-            <span class="card-title">{{ d.title || '无题' }}</span>
-          </div>
-          <div class="card-preview">{{ d.preview }}</div>
-          <div class="card-tags" v-if="d.tags && d.tags.length">
-            <span class="card-tag" v-for="t in d.tags" :key="t">{{ t }}</span>
+        <div class="tl-axis">
+          <div class="timeline-node"></div>
+          <div class="timeline-date">{{ group.dateLabel }}</div>
+        </div>
+        <div class="tl-right">
+          <div v-for="d in group.right" :key="d.id" :class="['diary-card', d.isMine && 'mine']" @click="openDiaryDetail(d.id)">
+            <div class="card-head">
+              <span class="card-mood">{{ d.moodEmoji }}</span>
+              <span class="card-weather">{{ d.weatherEmoji }}</span>
+              <span class="card-title">{{ d.title || '无题' }}</span>
+              <span v-if="d.status === 'published'" class="diary-status-chip published">已发布</span>
+              <span v-if="currentGroupId && d.authorName" class="card-author">{{ d.authorName }}</span>
+            </div>
+            <div class="card-preview">{{ d.preview }}</div>
+            <div class="card-tags" v-if="d.tags && d.tags.length">
+              <span class="card-tag" v-for="t in d.tags" :key="t">{{ t }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -579,7 +721,7 @@
 
     <div v-else class="diary-empty">
       <div class="empty-icon">📝</div>
-      <div>本月还没有日记</div>
+      <div>{{ currentGroupId ? '本月还没有日记' : '本月还没有日记' }}</div>
       <div style="font-size:12px; margin-top:8px;">点击右下角 + 写第一篇</div>
     </div>
 
@@ -754,29 +896,48 @@
     </div>
   </div>
 
-  <!-- ===== 日记详情弹层 ===== -->
-  <div v-if="diaryDetailVisible" class="diary-detail-overlay" @click.self="diaryDetailVisible=false">
-    <div class="diary-detail-sheet">
-      <div class="sheet-head">
-        <div style="font-size: 14px; color: #999;">日记详情</div>
-        <button class="sheet-close" @click="diaryDetailVisible=false">×</button>
+  <!-- ===== 日记纯享预览页（iCity风格 居中小卡片） ===== -->
+  <div v-if="diaryPreviewVisible" class="diary-preview-overlay" @click.self="closeDiaryPreview">
+    <div class="diary-preview-card">
+      <div class="diary-preview-nav">
+        <div class="nav-back" @click="closeDiaryPreview">← 返回</div>
+        <span v-if="diaryPreview && diaryPreview.status === 'published'" class="diary-preview-badge published">已发布</span>
       </div>
-      <template v-if="diaryDetail">
-        <div class="detail-date">{{ diaryDetail.diaryDate }}</div>
-        <div class="detail-title">{{ diaryDetail.title || '无题' }}</div>
-        <div class="detail-meta">
-          <span class="meta-item" v-if="diaryDetail.moodEmoji">{{ diaryDetail.moodEmoji }} {{ diaryDetail.moodName }}</span>
-          <span class="meta-item" v-if="diaryDetail.weatherEmoji">{{ diaryDetail.weatherEmoji }}</span>
+      <div class="diary-preview-body" v-if="diaryPreview">
+        <div class="diary-preview-header">
+          <div class="diary-preview-date">{{ diaryPreview.diaryDate }}</div>
+          <div class="diary-preview-author" v-if="diaryPreview.authorName">作者 · {{ diaryPreview.authorName }}</div>
+          <div class="diary-preview-title">{{ diaryPreview.title || '无题' }}</div>
+          <div class="diary-preview-meta">
+            <span v-if="diaryPreview.moodEmoji">{{ diaryPreview.moodEmoji }} {{ diaryPreview.moodName }}</span>
+            <span class="meta-dot" v-if="diaryPreview.moodEmoji && diaryPreview.weatherEmoji"></span>
+            <span v-if="diaryPreview.weatherEmoji">{{ diaryPreview.weatherEmoji }}</span>
+          </div>
         </div>
-        <div class="detail-content">{{ diaryDetail.content }}</div>
-        <div class="detail-tags" v-if="diaryDetail.tags && diaryDetail.tags.length">
-          <span class="detail-tag" v-for="t in diaryDetail.tags" :key="t">{{ t }}</span>
+        <div class="diary-preview-content">{{ diaryPreview.content }}</div>
+        <div class="diary-preview-tags" v-if="diaryPreview.tags && diaryPreview.tags.length">
+          <span class="diary-preview-tag" v-for="t in diaryPreview.tags" :key="t">#{{ t }}</span>
         </div>
-        <div class="detail-actions">
-          <button class="btn btn-ghost" @click="openDiaryEdit(diaryDetail.id)">编辑</button>
-          <button class="btn btn-ghost" style="color: #e53935; border-color: #ffcdd2;" @click="deleteDiary(diaryDetail.id)">删除</button>
+        <div class="diary-preview-divider"></div>
+        <div class="diary-preview-footer-info">
+          创建于 {{ diaryPreview.createTime && diaryPreview.createTime.substring(0,16) }}
+          <span v-if="diaryPreview.updateTime && diaryPreview.updateTime !== diaryPreview.createTime"> · 编辑于 {{ diaryPreview.updateTime.substring(0,16) }}</span>
         </div>
-      </template>
+      </div>
+      <!-- 底部操作栏 -->
+      <div class="diary-preview-actions" v-if="diaryPreview && diaryPreview.isMine">
+        <template v-if="diaryPreview.status === 'draft'">
+          <button class="btn-edit" @click="openDiaryEdit(diaryPreview.id)">编辑</button>
+          <button class="btn-publish" @click="publishDiary(diaryPreview.id)">发布</button>
+          <button class="btn-delete" @click="deleteDiary(diaryPreview.id)">删除</button>
+        </template>
+        <template v-else-if="diaryPreview.status === 'published'">
+          <button class="btn-edit" disabled style="opacity:0.5; cursor:not-allowed; width:100%;">已发布（不可修改）</button>
+        </template>
+      </div>
+      <div class="diary-preview-actions" v-else-if="diaryPreview && !diaryPreview.isMine">
+        <button class="btn-edit" disabled style="opacity:0.5; cursor:not-allowed; width:100%;">他人日记 · 仅可查看</button>
+      </div>
     </div>
   </div>
 
@@ -786,6 +947,14 @@
       <div class="sheet-head">
         <div class="sheet-title">{{ diaryFormMode === 'create' ? '写日记' : '编辑日记' }}</div>
         <button class="sheet-close" @click="diaryFormVisible=false">×</button>
+      </div>
+
+      <div class="form-group" v-if="diaryFormMode === 'create' && groupList.length > 0">
+        <div class="label">归属</div>
+        <select v-model="diaryForm.groupId" class="input-box">
+          <option :value="null">📝 私人日记（仅自己可见）</option>
+          <option v-for="g in groupList" :key="g.id" :value="g.id">👥 {{ g.name }}（{{ g.memberCount }}人共写）</option>
+        </select>
       </div>
 
       <div class="form-group">
@@ -834,6 +1003,115 @@
       <div class="form-actions">
         <button class="btn btn-ghost" @click="diaryFormVisible=false">取消</button>
         <button class="btn btn-primary" @click="saveDiary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 创建共享日记本弹层 ===== -->
+  <div v-if="groupCreateVisible" class="diary-form-overlay" @click.self="groupCreateVisible=false">
+    <div class="diary-form-sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">新建共享日记本</div>
+        <button class="sheet-close" @click="groupCreateVisible=false">×</button>
+      </div>
+      <div class="form-group">
+        <div class="label">日记本名称</div>
+        <input v-model="groupCreateForm.name" class="input-box" placeholder="如：我们的日记" />
+      </div>
+      <div class="form-group">
+        <div class="label">邀请成员（用户名，逗号分隔，可留空稍后邀请）</div>
+        <input v-model="groupCreateForm.inviteText" class="input-box" placeholder="如：alice, bob" />
+      </div>
+      <div style="font-size:12px; color:#999; margin-bottom:12px;">创建后会生成邀请码，可分享给他人申请加入。最多 8 人（含自己）。</div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" @click="groupCreateVisible=false">取消</button>
+        <button class="btn btn-primary" @click="createGroup">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 邀请码加入弹层 ===== -->
+  <div v-if="joinByCodeVisible" class="diary-form-overlay" @click.self="joinByCodeVisible=false">
+    <div class="diary-form-sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">输入邀请码加入</div>
+        <button class="sheet-close" @click="joinByCodeVisible=false">×</button>
+      </div>
+      <div class="form-group">
+        <div class="label">邀请码</div>
+        <input v-model="joinCodeInput" class="input-box" placeholder="8位邀请码" maxlength="8" style="text-transform:uppercase; letter-spacing:2px;" />
+      </div>
+      <div style="font-size:12px; color:#999; margin-bottom:12px;">提交后需组主确认才能加入。</div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" @click="joinByCodeVisible=false">取消</button>
+        <button class="btn btn-primary" @click="joinByCode">申请加入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 待确认邀请列表弹层 ===== -->
+  <div v-if="pendingVisible" class="diary-form-overlay" @click.self="pendingVisible=false">
+    <div class="diary-form-sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">待确认邀请/申请</div>
+        <button class="sheet-close" @click="pendingVisible=false">×</button>
+      </div>
+      <div v-if="pendingList.length === 0" style="text-align:center; color:#ccc; padding:40px 0;">暂无待确认事项</div>
+      <div v-for="p in pendingList" :key="p.memberId" class="pending-item">
+        <div class="pi-info">
+          <div class="pi-name">{{ p.groupName }}</div>
+          <div class="pi-meta">
+            <span v-if="p.type === 'invited'">{{ p.fromName }} 邀请你加入</span>
+            <span v-else>{{ p.fromName }} 申请加入你的日记本</span>
+          </div>
+        </div>
+        <div class="pi-actions">
+          <button class="btn btn-primary" style="padding:6px 14px;" @click="acceptPending(p)">接受</button>
+          <button class="btn btn-ghost" style="padding:6px 14px; color:#e53935; border-color:#ffcdd2;" @click="declinePending(p)">拒绝</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 共享日记本详情/成员管理弹层 ===== -->
+  <div v-if="groupDetailVisible" class="diary-form-overlay" @click.self="groupDetailVisible=false">
+    <div class="diary-form-sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">{{ groupDetail.name || '共享日记本' }}</div>
+        <button class="sheet-close" @click="groupDetailVisible=false">×</button>
+      </div>
+
+      <div v-if="groupDetail.isOwner" class="invite-row">
+        <input v-model="inviteUsernameInput" class="input-box" placeholder="输入用户名邀请" />
+        <button class="btn btn-primary" style="padding:8px 14px; flex-shrink:0;" @click="inviteMember">邀请</button>
+      </div>
+
+      <div v-if="groupDetail.isOwner" class="code-box">
+        <span class="code-label">邀请码：</span>
+        <span class="code-value">{{ groupDetail.inviteCode }}</span>
+        <button class="btn btn-ghost" style="padding:4px 10px; font-size:12px;" @click="copyInviteCode">复制</button>
+      </div>
+
+      <div class="members-title">成员（{{ groupDetail.members ? groupDetail.members.length : 0 }}/{{ groupDetail.maxMembers }}）</div>
+      <div v-if="groupDetail.members">
+        <div v-for="m in groupDetail.members" :key="m.userId" class="member-item">
+          <div class="mi-avatar">{{ (m.displayName || m.username || '?').charAt(0) }}</div>
+          <div class="mi-info">
+            <div class="mi-name">{{ m.displayName || m.username }}
+              <span v-if="m.role === 'owner'" class="mi-role">组主</span>
+              <span v-if="m.status === 'pending'" class="mi-pending">待确认</span>
+            </div>
+          </div>
+          <button v-if="groupDetail.isOwner && m.role !== 'owner' && m.status === 'active'"
+                  class="mi-btn danger" @click="removeMember(m)">移除</button>
+          <button v-if="groupDetail.isOwner && m.status === 'pending'"
+                  class="mi-btn" @click="acceptPendingMember(m)">通过</button>
+        </div>
+      </div>
+
+      <div class="form-actions" style="margin-top:24px;">
+        <button v-if="groupDetail.isOwner" class="btn btn-ghost" style="color:#e53935; border-color:#ffcdd2;" @click="dissolveGroup">解散日记本</button>
+        <button class="btn btn-ghost" @click="groupDetailVisible=false">关闭</button>
       </div>
     </div>
   </div>
@@ -1102,7 +1380,7 @@
       const switchTab = (t) => {
         tab.value = t;
         if (t === 'account') { pageTitle.value = '记账'; }
-        else if (t === 'diary') { pageTitle.value = '日记'; loadDiaryMonthly(); }
+        else if (t === 'diary') { pageTitle.value = '日记'; loadGroupList(); loadPendingList(); loadDiaryMonthly(); }
         else if (t === 'daily') { pageTitle.value = '日迹'; loadDaily(); }
         else if (t === 'me') { pageTitle.value = '我的'; }
       };
@@ -1135,11 +1413,29 @@
       const diaryLoading = ref(false);
 
       // 日记详情/表单弹层
-      const diaryDetailVisible = ref(false);
-      const diaryDetail = ref(null);
+      const diaryPreviewVisible = ref(false);
+      const diaryPreview = ref(null);
       const diaryFormVisible = ref(false);
       const diaryFormMode = ref('create');   // create / edit
-      const diaryForm = reactive({ id: null, title: '', content: '', mood: '', weather: '', tags: '', diaryDate: '' });
+      const diaryForm = reactive({ id: null, title: '', content: '', mood: '', weather: '', tags: '', diaryDate: '', groupId: null });
+
+      // ===== 共享日记本相关状态 =====
+      const currentGroupId = ref(null);       // null=私人日记视图；非null=查看某共享本
+      const currentGroupName = ref('');
+      const currentGroupMemberCount = ref(0);
+      const currentGroupIsOwner = ref(false);
+      const groupList = ref([]);              // 我参与的共享本列表
+      const pendingList = ref([]);            // 待确认邀请/申请
+      const pendingCount = ref(0);
+      const groupPanelVisible = ref(false);   // 共享日记下拉面板
+      const groupCreateVisible = ref(false);
+      const groupCreateForm = reactive({ name: '', inviteText: '' });
+      const joinByCodeVisible = ref(false);
+      const joinCodeInput = ref('');
+      const pendingVisible = ref(false);
+      const groupDetailVisible = ref(false);
+      const groupDetail = ref(null);
+      const inviteUsernameInput = ref('');
 
       // 计算属性：坏心情日记数
       const diaryBadCount = Vue.computed(() => diaryList.value.filter(d => BAD_MOODS.has(d.mood)).length);
@@ -1159,8 +1455,11 @@
           let side = 'both';
           if (left.length === 0 && right.length > 0) side = 'right';
           else if (right.length === 0 && left.length > 0) side = 'left';
-          // 日期标签：MM-DD
-          const dateLabel = date.length >= 10 ? date.substring(5) : date;
+          // 日期标签：MM-DD · 周X
+          const weekDayNames = ['日', '一', '二', '三', '四', '五', '六'];
+          const dateObj = new Date(date + 'T00:00:00');
+          const wk = isNaN(dateObj) ? '' : '周' + weekDayNames[dateObj.getDay()];
+          const dateLabel = (date.length >= 10 ? date.substring(5) : date) + (wk ? ' · ' + wk : '');
           return { date, dateLabel, left, right, side };
         });
         // 排序：倒序(31→1) 或 正序(1→31)
@@ -1173,10 +1472,13 @@
         diaryLoading.value = true;
         diaryList.value = [];
         try {
-          const resp = await apiFetch(`/api/diary/monthly?year=${diaryYear.value}&month=${diaryMonth.value}`);
+          const url = currentGroupId.value
+            ? `/api/diary-group/${currentGroupId.value}/monthly?year=${diaryYear.value}&month=${diaryMonth.value}`
+            : `/api/diary/monthly?year=${diaryYear.value}&month=${diaryMonth.value}`;
+          const resp = await apiFetch(url);
           const data = await resp.json();
           if (data.ok) diaryList.value = data.diaries || [];
-        } catch (e) { vant.showToast({ type: 'fail', message: '加载失败' }); }
+        } catch (e) { if (e.message !== '401') vant.showToast({ type: 'fail', message: '加载失败' }); }
         finally { diaryLoading.value = false; }
       };
 
@@ -1250,7 +1552,7 @@
       // 打开新建表单
       const openDiaryCreate = () => {
         diaryFormMode.value = 'create';
-        Object.assign(diaryForm, { id: null, title: '', content: '', mood: '', weather: '', tags: '', diaryDate: formatDate(new Date()) });
+        Object.assign(diaryForm, { id: null, title: '', content: '', mood: '', weather: '', tags: '', diaryDate: formatDate(new Date()), groupId: currentGroupId.value });
         diaryFormVisible.value = true;
       };
 
@@ -1271,20 +1573,20 @@
               tags: (d.tags || []).join(','),
               diaryDate: d.diaryDate || formatDate(new Date())
             });
-            diaryDetailVisible.value = false;
+            diaryPreviewVisible.value = false;
             diaryFormVisible.value = true;
           } else { vant.showToast({ type: 'fail', message: data.msg || '加载失败' }); }
         } catch { vant.showToast({ type: 'fail', message: '请求失败' }); }
       };
 
-      // 打开详情
+      // 打开纯享预览页
       const openDiaryDetail = async (id) => {
         try {
           const resp = await apiFetch('/api/diary/' + id);
           const data = await resp.json();
           if (data.ok && data.diary) {
-            diaryDetail.value = data.diary;
-            diaryDetailVisible.value = true;
+            diaryPreview.value = data.diary;
+            diaryPreviewVisible.value = true;
           } else { vant.showToast({ type: 'fail', message: data.msg || '加载失败' }); }
         } catch { vant.showToast({ type: 'fail', message: '请求失败' }); }
       };
@@ -1301,6 +1603,8 @@
             tags: diaryForm.tags || null,
             diaryDate: diaryForm.diaryDate
           };
+          // 新建模式下带 groupId（私人=null，共享=组ID）；编辑不改归属
+          if (diaryFormMode.value === 'create') payload.groupId = diaryForm.groupId || null;
           let resp;
           if (diaryFormMode.value === 'create') {
             resp = await apiFetch('/api/diary', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(payload) });
@@ -1324,10 +1628,255 @@
           const data = await resp.json();
           if (data.ok) {
             vant.showToast({ type: 'success', message: '已删除' });
-            diaryDetailVisible.value = false;
+            diaryPreviewVisible.value = false;
+            diaryPreview.value = null;
             loadDiaryMonthly();
           } else { vant.showToast({ type: 'fail', message: data.msg || '删除失败' }); }
         } catch (e) { if (e !== 'cancel' && e.message !== 'cancel') vant.showToast({ type: 'fail', message: '删除失败' }); }
+      };
+
+      // 关闭纯享预览页
+      const closeDiaryPreview = () => {
+        diaryPreviewVisible.value = false;
+        diaryPreview.value = null;
+      };
+
+      // 发布日记
+      const publishDiary = async (id) => {
+        try {
+          await vant.showConfirmDialog({ title: '发布日记', message: '发布后不可修改或删除，确定发布？' });
+          const resp = await apiFetch('/api/diary/' + id + '/publish', { method: 'POST' });
+          const data = await resp.json();
+          if (data.ok) {
+            vant.showToast({ type: 'success', message: '发布成功' });
+            // 更新预览页状态为已发布
+            if (diaryPreview.value) {
+              diaryPreview.value.status = 'published';
+            }
+            loadDiaryMonthly();
+          } else { vant.showToast({ type: 'fail', message: data.msg || '发布失败' }); }
+        } catch (e) { if (e !== 'cancel' && e.message !== 'cancel') vant.showToast({ type: 'fail', message: '发布失败' }); }
+      };
+
+      // ===== 共享日记本方法 =====
+      // 加载我参与的共享本列表
+      const loadGroupList = async () => {
+        try {
+          const resp = await apiFetch('/api/diary-group/list');
+          const data = await resp.json();
+          if (data.ok) groupList.value = data.list || [];
+        } catch (e) { if (e.message !== '401') {/* 静默 */} }
+      };
+
+      // 加载待确认邀请/申请
+      const loadPendingList = async () => {
+        try {
+          const resp = await apiFetch('/api/diary-group/pending');
+          const data = await resp.json();
+          if (data.ok) { pendingList.value = data.list || []; pendingCount.value = (data.list || []).length; }
+        } catch (e) { if (e.message !== '401') {/* 静默 */} }
+      };
+
+      const toggleGroupPanel = () => {
+        groupPanelVisible.value = !groupPanelVisible.value;
+        if (groupPanelVisible.value) calendarVisible.value = false;
+      };
+
+      // 切回私人日记
+      const switchToPrivate = () => {
+        currentGroupId.value = null;
+        currentGroupName.value = '';
+        currentGroupMemberCount.value = 0;
+        currentGroupIsOwner.value = false;
+        groupPanelVisible.value = false;
+        loadDiaryMonthly();
+      };
+
+      // 切到某共享本视图
+      const switchToGroup = (g) => {
+        currentGroupId.value = g.id;
+        currentGroupName.value = g.name;
+        currentGroupMemberCount.value = g.memberCount;
+        currentGroupIsOwner.value = !!g.isOwner;
+        groupPanelVisible.value = false;
+        loadDiaryMonthly();
+      };
+
+      // 新建共享本
+      const openGroupCreate = () => {
+        groupPanelVisible.value = false;
+        Object.assign(groupCreateForm, { name: '', inviteText: '' });
+        groupCreateVisible.value = true;
+      };
+      const createGroup = async () => {
+        if (!groupCreateForm.name.trim()) { vant.showToast('请填名称'); return; }
+        try {
+          const inviteUsernames = (groupCreateForm.inviteText || '').split(',').map(s => s.trim()).filter(Boolean);
+          const resp = await apiFetch('/api/diary-group', {
+            method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({ name: groupCreateForm.name.trim(), inviteUsernames })
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            let msg = '已创建';
+            if (data.inviteFails && data.inviteFails.length) msg += '，部分邀请失败：' + data.inviteFails.join('; ');
+            vant.showToast({ type: 'success', message: msg, duration: 2500 });
+            groupCreateVisible.value = false;
+            loadGroupList(); loadPendingList();
+          } else { vant.showToast({ type: 'fail', message: data.msg || '创建失败' }); }
+        } catch { vant.showToast({ type: 'fail', message: '请求失败' }); }
+      };
+
+      // 邀请码加入
+      const openJoinByCode = () => {
+        groupPanelVisible.value = false;
+        joinCodeInput.value = '';
+        joinByCodeVisible.value = true;
+      };
+      const joinByCode = async () => {
+        if (!joinCodeInput.value.trim()) { vant.showToast('请填邀请码'); return; }
+        try {
+          const resp = await apiFetch('/api/diary-group/join-by-code', {
+            method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({ inviteCode: joinCodeInput.value.trim().toUpperCase() })
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            vant.showToast({ type: 'success', message: '申请已提交，等待组主确认' });
+            joinByCodeVisible.value = false;
+            loadPendingList();
+          } else { vant.showToast({ type: 'fail', message: data.msg || '加入失败' }); }
+        } catch { vant.showToast({ type: 'fail', message: '请求失败' }); }
+      };
+
+      // 待确认列表
+      const openPending = () => {
+        groupPanelVisible.value = false;
+        loadPendingList();
+        pendingVisible.value = true;
+      };
+      const acceptPending = async (p) => {
+        try {
+          const targetUid = p.type === 'invited' ? userInfo.value.userId : p.fromUserId;
+          const resp = await apiFetch(`/api/diary-group/${p.groupId}/accept`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({ userId: targetUid })
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            vant.showToast({ type: 'success', message: '已加入' });
+            loadPendingList(); loadGroupList();
+          } else { vant.showToast({ type: 'fail', message: data.msg || '操作失败' }); }
+        } catch { vant.showToast({ type: 'fail', message: '请求失败' }); }
+      };
+      const declinePending = async (p) => {
+        try {
+          const targetUid = p.type === 'invited' ? userInfo.value.userId : p.fromUserId;
+          const resp = await apiFetch(`/api/diary-group/${p.groupId}/decline`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({ userId: targetUid })
+          });
+          const data = await resp.json();
+          if (data.ok) { vant.showToast({ type: 'success', message: '已拒绝' }); loadPendingList(); }
+          else { vant.showToast({ type: 'fail', message: data.msg || '操作失败' }); }
+        } catch { vant.showToast({ type: 'fail', message: '请求失败' }); }
+      };
+
+      // 组详情/成员管理
+      const openGroupDetail = async () => {
+        if (!currentGroupId.value) return;
+        groupPanelVisible.value = false;
+        try {
+          const resp = await apiFetch('/api/diary-group/' + currentGroupId.value);
+          const data = await resp.json();
+          if (data.ok) {
+            groupDetail.value = data;
+            inviteUsernameInput.value = '';
+            groupDetailVisible.value = true;
+          } else { vant.showToast({ type: 'fail', message: data.msg || '加载失败' }); }
+        } catch { vant.showToast({ type: 'fail', message: '请求失败' }); }
+      };
+      const inviteMember = async () => {
+        if (!inviteUsernameInput.value.trim()) { vant.showToast('请填用户名'); return; }
+        try {
+          const resp = await apiFetch(`/api/diary-group/${currentGroupId.value}/invite`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({ username: inviteUsernameInput.value.trim() })
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            vant.showToast({ type: 'success', message: '邀请已发出' });
+            inviteUsernameInput.value = '';
+            const r = await apiFetch('/api/diary-group/' + currentGroupId.value);
+            const d = await r.json();
+            if (d.ok) groupDetail.value = d;
+            loadPendingList();
+          } else { vant.showToast({ type: 'fail', message: data.msg || '邀请失败' }); }
+        } catch { vant.showToast({ type: 'fail', message: '请求失败' }); }
+      };
+      const removeMember = async (m) => {
+        try {
+          await vant.showConfirmDialog({ title: '移除成员', message: `确定移除 ${m.displayName || m.username}？` });
+          const resp = await apiFetch(`/api/diary-group/${currentGroupId.value}/members/${m.userId}`, { method: 'DELETE' });
+          const data = await resp.json();
+          if (data.ok) {
+            vant.showToast({ type: 'success', message: '已移除' });
+            const r = await apiFetch('/api/diary-group/' + currentGroupId.value);
+            const d = await r.json();
+            if (d.ok) groupDetail.value = d;
+            loadGroupList();
+          } else { vant.showToast({ type: 'fail', message: data.msg || '操作失败' }); }
+        } catch (e) { if (e !== 'cancel' && e.message !== 'cancel') vant.showToast({ type: 'fail', message: '操作失败' }); }
+      };
+      const acceptPendingMember = async (m) => {
+        try {
+          const resp = await apiFetch(`/api/diary-group/${currentGroupId.value}/accept`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({ userId: m.userId })
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            vant.showToast({ type: 'success', message: '已通过' });
+            const r = await apiFetch('/api/diary-group/' + currentGroupId.value);
+            const d = await r.json();
+            if (d.ok) groupDetail.value = d;
+            loadGroupList(); loadPendingList();
+          } else { vant.showToast({ type: 'fail', message: data.msg || '操作失败' }); }
+        } catch { vant.showToast({ type: 'fail', message: '请求失败' }); }
+      };
+      const dissolveGroup = async () => {
+        try {
+          await vant.showConfirmDialog({ title: '解散日记本', message: '确定解散？日记记录会保留但无法再访问。' });
+          const resp = await apiFetch('/api/diary-group/' + currentGroupId.value, { method: 'DELETE' });
+          const data = await resp.json();
+          if (data.ok) {
+            vant.showToast({ type: 'success', message: '已解散' });
+            groupDetailVisible.value = false;
+            switchToPrivate();
+            loadGroupList(); loadPendingList();
+          } else { vant.showToast({ type: 'fail', message: data.msg || '操作失败' }); }
+        } catch (e) { if (e !== 'cancel' && e.message !== 'cancel') vant.showToast({ type: 'fail', message: '操作失败' }); }
+      };
+      const leaveGroup = async () => {
+        try {
+          await vant.showConfirmDialog({ title: '退出日记本', message: '确定退出该共享日记本？' });
+          const resp = await apiFetch(`/api/diary-group/${currentGroupId.value}/leave`, { method: 'POST' });
+          const data = await resp.json();
+          if (data.ok) {
+            vant.showToast({ type: 'success', message: data.msg || '已退出' });
+            switchToPrivate();
+            loadGroupList(); loadPendingList();
+          } else { vant.showToast({ type: 'fail', message: data.msg || '操作失败' }); }
+        } catch (e) { if (e !== 'cancel' && e.message !== 'cancel') vant.showToast({ type: 'fail', message: '操作失败' }); }
+      };
+      const copyInviteCode = () => {
+        if (!groupDetail.value || !groupDetail.value.inviteCode) return;
+        const code = groupDetail.value.inviteCode;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(code).then(() => vant.showToast({ type: 'success', message: '已复制：' + code }));
+        } else {
+          vant.showToast('邀请码：' + code);
+        }
       };
 
       // 格式化日期为 YYYY-MM-DD
@@ -1499,14 +2048,25 @@
         // 日记
         diaryYear, diaryMonth, diarySortDesc, diaryList, diaryLoading,
         diaryBadCount, diaryDisplayGroups,
-        diaryDetailVisible, diaryDetail, diaryFormVisible, diaryFormMode, diaryForm,
+        diaryPreviewVisible, diaryPreview, diaryFormVisible, diaryFormMode, diaryForm,
         MOOD_LIST, WEATHER_LIST, BAD_MOODS,
         loadDiaryMonthly, prevMonth, nextMonth, toggleSort,
         openDiaryCreate, openDiaryEdit, openDiaryDetail, saveDiary, deleteDiary,
+        closeDiaryPreview, publishDiary,
         // 月历面板
         calendarVisible, calendarYear, calendarMonth, calendarDays,
         todayYear, todayMonth, todayDay, diarySelectedDay,
         toggleCalendar, prevCalYear, nextCalYear, selectCalDay, calendarHasDiary,
+        // 共享日记本
+        currentGroupId, currentGroupName, currentGroupMemberCount, currentGroupIsOwner,
+        groupList, pendingList, pendingCount, groupPanelVisible,
+        groupCreateVisible, groupCreateForm, joinByCodeVisible, joinCodeInput,
+        pendingVisible, groupDetailVisible, groupDetail, inviteUsernameInput,
+        loadGroupList, loadPendingList, toggleGroupPanel, switchToPrivate, switchToGroup,
+        openGroupCreate, createGroup, openJoinByCode, joinByCode,
+        openPending, acceptPending, declinePending,
+        openGroupDetail, inviteMember, removeMember, acceptPendingMember,
+        dissolveGroup, leaveGroup, copyInviteCode,
         // 日迹
         dailyDate, dailyData, dailyLoading, dailyCalVisible,
         dailyCalYear, dailyCalMonth, dailyCalDays,

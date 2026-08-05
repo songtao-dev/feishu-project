@@ -121,6 +121,36 @@ public class UserService {
     }
 
     /**
+     * 按用户名查用户。共享日记本邀请成员时用。
+     * @return 找不到返回 null
+     */
+    public User findByUsername(String username) {
+        if (username == null || username.isBlank()) return null;
+        return userMapper.selectOne(
+                new LambdaQueryWrapper<User>().eq(User::getUsername, username.trim())
+        );
+    }
+
+    /**
+     * 按 ID 查用户实体（含密码字段，仅内部使用，不要直接返回给前端）。
+     */
+    public User getByIdRaw(Long userId) {
+        if (userId == null) return null;
+        return userMapper.selectById(userId);
+    }
+
+    /**
+     * 取用户昵称（优先 nickname，空则回退 username）。共享日记作者展示用。
+     */
+    public String getDisplayName(Long userId) {
+        if (userId == null) return "";
+        User u = userMapper.selectById(userId);
+        if (u == null) return "";
+        if (u.getNickname() != null && !u.getNickname().isBlank()) return u.getNickname();
+        return u.getUsername() == null ? "" : u.getUsername();
+    }
+
+    /**
      * 查用户信息（脱敏，不含密码）。
      */
     public UserInfoVO getInfo(Long userId) {

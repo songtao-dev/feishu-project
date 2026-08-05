@@ -4,7 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.code.feishu.context.UserContext;
 import com.code.feishu.dto.DiaryDTO;
 import com.code.feishu.entity.Diary;
+import com.code.feishu.entity.DiaryGroup;
+import com.code.feishu.entity.DiaryGroupMember;
+import com.code.feishu.mapper.DiaryGroupMapper;
+import com.code.feishu.mapper.DiaryGroupMemberMapper;
 import com.code.feishu.mapper.DiaryMapper;
+import com.code.feishu.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -60,10 +65,23 @@ public class DiaryController {
     /** 预览正文长度（按码点截，避免 emoji 代理对被截断） */
     private static final int PREVIEW_LEN = 15;
 
-    private final DiaryMapper diaryMapper;
+    /** 日记状态常量 */
+    public static final String STATUS_DRAFT = "draft";
+    public static final String STATUS_PUBLISHED = "published";
 
-    public DiaryController(DiaryMapper diaryMapper) {
+    private final DiaryMapper diaryMapper;
+    private final DiaryGroupMapper groupMapper;
+    private final DiaryGroupMemberMapper memberMapper;
+    private final UserService userService;
+
+    public DiaryController(DiaryMapper diaryMapper,
+                           DiaryGroupMapper groupMapper,
+                           DiaryGroupMemberMapper memberMapper,
+                           UserService userService) {
         this.diaryMapper = diaryMapper;
+        this.groupMapper = groupMapper;
+        this.memberMapper = memberMapper;
+        this.userService = userService;
     }
 
     // ==================== 新建 ====================
@@ -87,8 +105,22 @@ public class DiaryController {
             return resp;
         }
 
+        // 若指定 groupId → 共享日记本日记：校验当前用户是该组 active 成员 + 上限
+        Long groupId = dto.getGroupId();
+        if (groupId != null) {
+            String authErr = assertActiveMember(groupId, userId);
+            if (authErr != null) {
+                resp.put("ok", false);
+                resp.put("msg", authErr);
+                return resp;
+            }
+        }
+
         Diary diary = new Diary();
-        diary.setUserId(userId);
+        diary.setUserId(userId);                 // 私人日记用；共享日记里冗余存作者
+        diary.setGroupId(groupId);               // null=私人日记
+        diary.setAuthorUserId(userId);           // 共享日记作者，便于权限校验
+        diary.setStatus(STATUS_DRAFT);           // 新建默认为草稿状态
         diary.setTitle(dto.getTitle());
         diary.setContent(dto.getContent());
         diary.setMood(dto.getMood());
@@ -121,16 +153,35 @@ public class DiaryController {
             resp.put("msg", "日记不存在，id=" + id);
             return resp;
         }
-        // 权限校验：只能查自己的日记
         Long userId = UserContext.getUserId();
-        if (diary.getUserId() == null || !diary.getUserId().equals(userId)) {
-            resp.put("ok", false);
-            resp.put("msg", "无权查看此日记");
-            return resp;
+        // 权限校验：
+        //   - 私人日记（groupId=null）：只能本人查
+        //   - 共享日记（groupId≠null）：该组 active 成员都能查
+        if (diary.getGroupId() == null) {
+            if (diary.getUserId() == null || !diary.getUserId().equals(userId)) {
+                resp.put("ok", false);
+                resp.put("msg", "无权查看此日记");
+                return resp;
+            }
+        } else {
+            String authErr = assertActiveMember(diary.getGroupId(), userId);
+            if (authErr != null) {
+                resp.put("ok", false);
+                resp.put("msg", authErr);
+                return resp;
+            }
         }
 
+        Map<String, Object> detail = buildDiaryDetail(diary);
+        detail.put("groupId", diary.getGroupId());
+        detail.put("authorUserId", diary.getAuthorUserId());
+        detail.put("authorName",
+                diary.getAuthorUserId() == null ? "" : userService.getDisplayName(diary.getAuthorUserId()));
+        detail.put("isMine", Objects.equals(
+                diary.getGroupId() == null ? diary.getUserId() : diary.getAuthorUserId(), userId));
+
         resp.put("ok", true);
-        resp.put("diary", buildDiaryDetail(diary));
+        resp.put("diary", detail);
         return resp;
     }
 
@@ -150,11 +201,14 @@ public class DiaryController {
             resp.put("msg", "日记不存在，id=" + id);
             return resp;
         }
-        // 权限校验：只能改自己的日记
+        // 权限校验：只能改自己写的日记
+        //   - 私人日记：diary.userId == 当前用户
+        //   - 共享日记：diary.authorUserId == 当前用户（组主也不能改别人的）
         Long userId = UserContext.getUserId();
-        if (diary.getUserId() == null || !diary.getUserId().equals(userId)) {
+        String authErr = assertAuthor(diary, userId);
+        if (authErr != null) {
             resp.put("ok", false);
-            resp.put("msg", "无权修改此日记");
+            resp.put("msg", authErr);
             return resp;
         }
 
@@ -189,17 +243,69 @@ public class DiaryController {
             resp.put("msg", "日记不存在，id=" + id);
             return resp;
         }
-        // 权限校验：只能删自己的日记
+        // 权限校验：只能删自己写的日记（组主也不能删别人的）
         Long userId = UserContext.getUserId();
-        if (diary.getUserId() == null || !diary.getUserId().equals(userId)) {
+        String authErr = assertAuthor(diary, userId);
+        if (authErr != null) {
             resp.put("ok", false);
-            resp.put("msg", "无权删除此日记");
+            resp.put("msg", authErr);
             return resp;
         }
 
         diaryMapper.deleteById(id);
         resp.put("ok", true);
         resp.put("msg", "删除成功");
+        return resp;
+    }
+
+    // ==================== 发布 ====================
+
+    /**
+     * 发布日记（草稿 → 已发布，发布后不可修改/删除）。
+     * 只能由作者本人发布自己的日记。
+     * 成功：{"ok":true,"msg":"发布成功"}
+     */
+    @PostMapping("/{id}/publish")
+    public Map<String, Object> publish(@PathVariable Long id) {
+        Map<String, Object> resp = new LinkedHashMap<>();
+        Diary diary = diaryMapper.selectById(id);
+        if (diary == null) {
+            resp.put("ok", false);
+            resp.put("msg", "日记不存在");
+            return resp;
+        }
+        Long userId = UserContext.getUserId();
+        String authErr = assertAuthor(diary, userId);
+        if (authErr != null && !"已发布的日记不可修改或删除".equals(authErr)) {
+            resp.put("ok", false);
+            resp.put("msg", authErr);
+            return resp;
+        }
+        // 已发布直接返回成功（幂等）
+        if (STATUS_PUBLISHED.equals(diary.getStatus())) {
+            resp.put("ok", true);
+            resp.put("msg", "已是发布状态");
+            return resp;
+        }
+        // 校验作者身份后发布
+        if (diary.getGroupId() == null) {
+            if (!Objects.equals(diary.getUserId(), userId)) {
+                resp.put("ok", false);
+                resp.put("msg", "无权发布此日记");
+                return resp;
+            }
+        } else {
+            if (!Objects.equals(diary.getAuthorUserId(), userId)) {
+                resp.put("ok", false);
+                resp.put("msg", "只能发布自己写的日记");
+                return resp;
+            }
+        }
+        diary.setStatus(STATUS_PUBLISHED);
+        diaryMapper.updateById(diary);
+        resp.put("ok", true);
+        resp.put("msg", "发布成功");
+        resp.put("diary", buildDiaryDetail(diary));
         return resp;
     }
 
@@ -243,6 +349,7 @@ public class DiaryController {
         List<Diary> list = diaryMapper.selectList(
                 new LambdaQueryWrapper<Diary>()
                         .eq(Diary::getUserId, userId)
+                        .isNull(Diary::getGroupId)   // 仅私人日记；共享日记走 /api/diary-group/{id}/monthly
                         .ge(Diary::getDiaryDate, start)
                         .le(Diary::getDiaryDate, end)
                         .orderByDesc(Diary::getDiaryDate)
@@ -264,6 +371,42 @@ public class DiaryController {
     }
 
     // ==================== 工具方法 ====================
+
+    /**
+     * 校验当前用户是该日记的作者（改/删权限）。
+     *   - 私人日记：userId == 当前用户
+     *   - 共享日记：authorUserId == 当前用户（组主也不能改删别人的）
+     *   - 已发布(published)状态：禁止修改和删除
+     * 返回 null=通过，否则返回错误信息。
+     */
+    private String assertAuthor(Diary diary, Long userId) {
+        // 已发布日记不能修改/删除
+        if (STATUS_PUBLISHED.equals(diary.getStatus())) {
+            return "已发布的日记不可修改或删除";
+        }
+        if (diary.getGroupId() == null) {
+            if (diary.getUserId() == null || !diary.getUserId().equals(userId)) {
+                return "无权操作此日记";
+            }
+            return null;
+        }
+        if (diary.getAuthorUserId() == null || !diary.getAuthorUserId().equals(userId)) {
+            return "只能修改/删除自己写的日记";
+        }
+        return null;
+    }
+
+    /** 校验当前用户是某组的 active 成员，返回 null=通过 */
+    private String assertActiveMember(Long groupId, Long userId) {
+        DiaryGroupMember m = memberMapper.selectOne(
+                new LambdaQueryWrapper<DiaryGroupMember>()
+                        .eq(DiaryGroupMember::getGroupId, groupId)
+                        .eq(DiaryGroupMember::getUserId, userId)
+        );
+        if (m == null || "left".equals(m.getStatus())) return "你不在该日记本中";
+        if ("pending".equals(m.getStatus())) return "邀请/申请待确认，暂不可访问";
+        return null;
+    }
 
     /** 解析日期字符串，失败返回默认值 */
     private LocalDate parseDate(String dateStr, LocalDate defaultValue) {
@@ -287,6 +430,7 @@ public class DiaryController {
         item.put("weather", d.getWeather());
         item.put("weatherEmoji", WEATHER_EMOJI.getOrDefault(d.getWeather(), ""));
         item.put("tags", parseTags(d.getTags()));
+        item.put("status", d.getStatus() != null ? d.getStatus() : STATUS_DRAFT);
         item.put("diaryDate", d.getDiaryDate() != null ? d.getDiaryDate().toString() : null);
         item.put("createTime", d.getCreateTime());
         item.put("updateTime", d.getUpdateTime());
@@ -307,6 +451,7 @@ public class DiaryController {
         item.put("weather", d.getWeather());
         item.put("weatherEmoji", WEATHER_EMOJI.getOrDefault(d.getWeather(), ""));
         item.put("tags", parseTags(d.getTags()));
+        item.put("status", d.getStatus() != null ? d.getStatus() : STATUS_DRAFT);
         return item;
     }
 
