@@ -31,6 +31,24 @@
   .btn-block { width: 100%; justify-content: center; padding: 14px; font-size: 15px; }
   .btn:disabled { opacity: .5; }
   .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+  /* ===== GPT风格筛选条 ===== */
+  .filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px; background: #fff; border: 1px solid #ececec; border-radius: 14px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); box-sizing: border-box; }
+  .filter-bar .filter-input { flex: 1; min-width: 150px; height: 38px; border: 1px solid #ececec; border-radius: 10px; padding: 0 12px 0 36px; font-size: 13px; line-height: 1.5; background-color: #fff; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 12px center; background-size: 14px 14px; transition: border-color .15s, box-shadow .15s; box-sizing: border-box; outline: none; }
+  .filter-bar .filter-input::placeholder { color: #b0b0b0; }
+  .filter-bar .filter-input:hover { border-color: #d8d8d8; }
+  .filter-bar .filter-input:focus { border-color: #1a1a1a; box-shadow: 0 0 0 3px rgba(26,26,26,0.06); background-color: #fff; }
+  .filter-bar .filter-select { appearance: none; -webkit-appearance: none; height: 38px; border: 1px solid #ececec; border-radius: 10px; padding: 0 30px 0 12px; font-size: 13px; line-height: 1.5; background-color: #fff; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 12px 12px; cursor: pointer; color: #444; transition: border-color .15s, background-color .15s; flex-shrink: 0; box-sizing: border-box; outline: none; }
+  .filter-bar .filter-select:hover { border-color: #d8d8d8; background-color: #fafafa; }
+  .filter-bar .filter-select:focus { border-color: #1a1a1a; box-shadow: 0 0 0 3px rgba(26,26,26,0.06); }
+  .filter-bar .filter-btn { height: 38px; background: #1a1a1a; color: #fff; border: none; border-radius: 10px; padding: 0 18px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s, transform .1s; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
+  .filter-bar .filter-btn:hover { background: #2a2a2a; }
+  .filter-bar .filter-btn:active { transform: scale(.97); }
+  .filter-bar .filter-btn:disabled { opacity: .5; cursor: not-allowed; }
+  /* 筛选结果状态行 */
+  .filter-status { display: flex; align-items: center; justify-content: space-between; margin: 0 14px 8px; font-size: 12px; color: #888; }
+  .filter-status .btn-text { font-size: 12px; padding: 2px 6px; color: #666; }
+  .filter-status .btn-text:active { color: #1a1a1a; }
   .tip { margin-top: 12px; padding: 10px 14px; background: #f9f9f9; border-radius: 10px; font-size: 13px; color: #888; line-height: 1.5; }
   .divider { height: 1px; background: #f0f0f0; margin: 24px 0; }
   .record-item { padding: 16px 0; border-bottom: 1px solid #f5f5f5; }
@@ -278,6 +296,45 @@
   .diary-detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: flex-end; }
   .diary-detail-sheet { width: 100%; max-width: 680px; margin: 0 auto; background: #fff; border-radius: 16px 16px 0 0; padding: 20px; max-height: 88vh; overflow-y: auto; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
   .diary-detail-sheet .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+
+  /* ===== 媒体上传/展示组件 ===== */
+  .media-upload-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .media-thumb { position: relative; aspect-ratio: 1 / 1; border-radius: 10px; overflow: hidden; background: #f5f5f5; }
+  .media-thumb img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; display: block; }
+  .thumb-remove { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,0.55); color: #fff; border: none; font-size: 14px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .media-add-btn { aspect-ratio: 1 / 1; border: 1.5px dashed #d8d8d8; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: border-color .15s, background .15s; }
+  .media-add-btn:hover { border-color: #999; background: #fafafa; }
+  .media-add-btn .add-icon { font-size: 24px; color: #ccc; font-weight: 300; }
+  .voice-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f8f8f8; border-radius: 10px; margin-bottom: 8px; }
+  .voice-icon { font-size: 16px; }
+  .voice-duration { font-size: 13px; color: #666; flex: 1; }
+  .voice-remove { background: none; border: none; color: #e53935; font-size: 12px; cursor: pointer; padding: 2px 6px; }
+  .record-controls { display: flex; align-items: center; gap: 10px; }
+  .record-btn { padding: 8px 16px; border: 1px solid #e8e8e8; border-radius: 20px; background: #fff; font-size: 13px; color: #333; cursor: pointer; transition: all .15s; }
+  .record-btn:hover { border-color: #999; }
+  .record-btn.recording { background: #e53935; color: #fff; border-color: #e53935; }
+  .record-cancel { background: none; border: none; color: #999; font-size: 13px; cursor: pointer; }
+
+  /* 日记树卡片媒体展示 */
+  .card-media { margin-top: 8px; }
+  .card-media-images { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px; }
+  .card-media-images img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 6px; cursor: pointer; }
+  .card-media-voice { display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #f0f0f0; border-radius: 14px; font-size: 11px; color: #666; }
+  .card-media-voice .voice-wave { display: flex; gap: 1px; align-items: center; height: 12px; }
+  .card-media-voice .voice-wave span { width: 2px; background: #999; border-radius: 1px; }
+  .card-media-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; color: #999; margin-left: 6px; }
+
+  /* 纯享预览页媒体展示 */
+  .preview-media { margin: 20px 0; }
+  .preview-media-images { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+  .preview-media-images img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; cursor: pointer; }
+  .preview-voice-player { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #f8f8f8; border-radius: 14px; }
+  .preview-voice-play { width: 40px; height: 40px; border-radius: 50%; background: #1a1a1a; color: #fff; border: none; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .preview-voice-play:active { transform: scale(0.95); }
+  .preview-voice-info { flex: 1; }
+  .preview-voice-duration { font-size: 12px; color: #999; margin-bottom: 4px; }
+  .preview-voice-bar { height: 3px; background: #e0e0e0; border-radius: 2px; overflow: hidden; }
+  .preview-voice-progress { height: 100%; background: #1a1a1a; border-radius: 2px; transition: width .1s linear; }
   .diary-detail-sheet .sheet-close { width: 28px; height: 28px; border-radius: 50%; background: #f5f5f5; border: none; font-size: 16px; color: #666; cursor: pointer; }
   .diary-detail-sheet .detail-date { font-size: 12px; color: #999; margin-bottom: 8px; }
   .diary-detail-sheet .detail-title { font-size: 20px; font-weight: 700; color: #1a1a1a; margin-bottom: 12px; line-height: 1.4; }
@@ -801,9 +858,9 @@
       </select>
       <button class="btn btn-primary filter-btn" @click="doSearchDiary">搜</button>
     </div>
-    <div v-if="diarySearchKeyword || (diarySearchMood && diarySearchMood!=='全部') || (diarySearchWeather && diarySearchWeather!=='全部')" style="margin: 0 14px 8px; display:flex; justify-content:space-between; align-items:center;">
-      <span style="font-size:12px; color:#888;">搜索结果 {{ diaryList.length }} 篇（仅私人日记）</span>
-      <button class="btn btn-text" style="font-size:12px; padding:0;" @click="resetDiarySearch">重置</button>
+    <div v-if="diarySearchKeyword || (diarySearchMood && diarySearchMood!=='全部') || (diarySearchWeather && diarySearchWeather!=='全部')" class="filter-status">
+      <span>搜索结果 {{ diaryList.length }} 篇（仅私人日记）</span>
+      <button class="btn btn-text" @click="resetDiarySearch">重置</button>
     </div>
 
     <div class="timeline-wrap" v-if="diaryList.length > 0">
@@ -820,6 +877,17 @@
             <div class="card-preview">{{ d.preview }}</div>
             <div class="card-tags" v-if="d.tags && d.tags.length">
               <span class="card-tag" v-for="t in d.tags" :key="t">{{ t }}</span>
+            </div>
+            <div class="card-media" v-if="d.coverImage || d.voiceCount">
+              <div v-if="d.coverImage" class="card-media-images">
+                <img :src="d.coverImage" />
+              </div>
+              <div v-if="d.voiceCount" class="card-media-voice">
+                <span>🎙</span>
+                <div class="voice-wave">
+                  <span style="height:4px"></span><span style="height:8px"></span><span style="height:6px"></span><span style="height:10px"></span><span style="height:5px"></span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -838,6 +906,17 @@
             <div class="card-preview">{{ d.preview }}</div>
             <div class="card-tags" v-if="d.tags && d.tags.length">
               <span class="card-tag" v-for="t in d.tags" :key="t">{{ t }}</span>
+            </div>
+            <div class="card-media" v-if="d.coverImage || d.voiceCount">
+              <div v-if="d.coverImage" class="card-media-images">
+                <img :src="d.coverImage" />
+              </div>
+              <div v-if="d.voiceCount" class="card-media-voice">
+                <span>🎙</span>
+                <div class="voice-wave">
+                  <span style="height:4px"></span><span style="height:8px"></span><span style="height:6px"></span><span style="height:10px"></span><span style="height:5px"></span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -974,9 +1053,9 @@
         </select>
         <button class="btn btn-primary filter-btn" @click="doSearchTodo">搜</button>
       </div>
-      <div v-if="todoSearchKeyword || todoSearchCompleted !== ''" style="margin: 0 14px 8px; display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size:12px; color:#888;">搜索结果 {{ (todoPending.length + todoDone.length) }} 条</span>
-        <button class="btn btn-text" style="font-size:12px; padding:0;" @click="resetTodoSearch">重置</button>
+      <div v-if="todoSearchKeyword || todoSearchCompleted !== ''" class="filter-status">
+        <span>搜索结果 {{ (todoPending.length + todoDone.length) }} 条</span>
+        <button class="btn btn-text" @click="resetTodoSearch">重置</button>
       </div>
 
       <!-- 新建输入框（回车连续添加） -->
@@ -1317,6 +1396,19 @@
           </div>
         </div>
         <div class="diary-preview-content">{{ diaryPreview.content }}</div>
+        <!-- 媒体展示：图片 + 语音 -->
+        <div class="preview-media" v-if="diaryPreview.media && diaryPreview.media.length">
+          <div class="preview-media-images" v-if="diaryPreview.media.filter(m => m.type === 1).length">
+            <img v-for="m in diaryPreview.media.filter(m => m.type === 1)" :key="m.id" :src="m.url" @click="previewImages(diaryPreview.media, m.url)" />
+          </div>
+          <div v-for="m in diaryPreview.media.filter(m => m.type === 2)" :key="m.id" class="preview-voice-player">
+            <button class="preview-voice-play" @click="playPreviewVoice">{{ previewVoicePlaying ? '❚❚' : '▶' }}</button>
+            <div class="preview-voice-info">
+              <div class="preview-voice-duration">{{ formatDuration(m.duration) }}</div>
+              <div class="preview-voice-bar"><div class="preview-voice-progress" :style="{width: previewVoiceProgress + '%'}"></div></div>
+            </div>
+          </div>
+        </div>
         <div class="diary-preview-tags" v-if="diaryPreview.tags && diaryPreview.tags.length">
           <span class="diary-preview-tag" v-for="t in diaryPreview.tags" :key="t">#{{ t }}</span>
         </div>
@@ -1402,9 +1494,54 @@
         <input v-model="diaryForm.tags" class="input-box" placeholder="生活,工作,感悟" />
       </div>
 
+      <!-- 图片上传区 -->
+      <div class="form-group">
+        <div class="label">图片 <span style="color:#bbb; font-weight:400;">（最多9张，单张≤5MB）</span></div>
+        <div class="media-upload-grid">
+          <!-- 已有图片（编辑模式） -->
+          <div v-for="(img, idx) in diaryFormExistingImages" :key="'old-'+img.id" class="media-thumb">
+            <img :src="img.url" @click="previewFormImage(img.url)" />
+            <button v-if="diaryForm.status !== 'published'" class="thumb-remove" @click="removeExistingMedia(img.id)">×</button>
+          </div>
+          <!-- 新选的图片 -->
+          <div v-for="(img, idx) in diaryFormNewImages" :key="'new-'+idx" class="media-thumb">
+            <img :src="img.previewUrl" @click="previewFormImage(img.previewUrl)" />
+            <button class="thumb-remove" @click="removeNewImage(idx)">×</button>
+          </div>
+          <!-- 添加按钮 -->
+          <label v-if="(diaryFormExistingImages.length + diaryFormNewImages.length) < 9 && diaryForm.status !== 'published'" class="media-add-btn">
+            <span class="add-icon">+</span>
+            <input type="file" accept="image/*" multiple @change="onImageSelect" style="display:none;" />
+          </label>
+        </div>
+      </div>
+
+      <!-- 语音录制区 -->
+      <div class="form-group">
+        <div class="label">语音 <span style="color:#bbb; font-weight:400;">（最长5分钟）</span></div>
+        <!-- 已有语音（编辑模式） -->
+        <div v-for="v in diaryFormExistingVoices" :key="'vold-'+v.id" class="voice-item">
+          <span class="voice-icon">🎙</span>
+          <span class="voice-duration">{{ formatDuration(v.duration) }}</span>
+          <button v-if="diaryForm.status !== 'published'" class="voice-remove" @click="removeExistingMedia(v.id)">删除</button>
+        </div>
+        <!-- 新录音 -->
+        <div v-if="diaryFormNewVoice" class="voice-item">
+          <span class="voice-icon">🎙</span>
+          <span class="voice-duration">{{ formatDuration(diaryFormNewVoice.duration) }}</span>
+          <button class="voice-remove" @click="removeNewVoice">删除</button>
+        </div>
+        <!-- 录音控制 -->
+        <div v-if="diaryForm.status !== 'published'" class="record-controls">
+          <button v-if="!isRecording && !diaryFormNewVoice" class="record-btn" @click="startRecording">● 开始录音</button>
+          <button v-if="isRecording" class="record-btn recording" @click="stopRecording">■ 停止 ({{ formatDuration(recordingSeconds) }})</button>
+          <button v-if="isRecording" class="record-cancel" @click="cancelRecording">取消</button>
+        </div>
+      </div>
+
       <div class="form-actions">
         <button class="btn btn-ghost" @click="diaryFormVisible=false">取消</button>
-        <button class="btn btn-primary" @click="saveDiary">保存</button>
+        <button class="btn btn-primary" @click="saveDiary" :disabled="diaryUploading">{{ diaryUploading ? '上传中...' : '保存' }}</button>
       </div>
     </div>
   </div>
@@ -2147,7 +2284,25 @@
       const diaryPreview = ref(null);
       const diaryFormVisible = ref(false);
       const diaryFormMode = ref('create');   // create / edit
-      const diaryForm = reactive({ id: null, title: '', content: '', mood: '', weather: '', tags: '', diaryDate: '', groupId: null });
+      const diaryForm = reactive({ id: null, title: '', content: '', mood: '', weather: '', tags: '', diaryDate: '', groupId: null, status: 'draft' });
+
+      // ===== 日记媒体状态（图片/语音） =====
+      const diaryFormExistingImages = ref([]);     // 编辑模式下已有的图片 [{id,url}]
+      const diaryFormExistingVoices = ref([]);     // 编辑模式下已有的语音 [{id,duration}]
+      const diaryFormNewImages = ref([]);          // 新选的图片 [{file,previewUrl}]
+      const diaryFormNewVoice = ref(null);         // 新录的语音 {blob,duration}
+      const diaryDeletedMediaIds = ref([]);        // 标记删除的已有媒体ID
+      const diaryUploading = ref(false);           // 媒体上传中
+      // 录音状态
+      const isRecording = ref(false);
+      const recordingSeconds = ref(0);
+      let mediaRecorder = null;
+      let recordingTimer = null;
+      let audioStream = null;
+      // 预览页语音播放状态
+      const previewVoicePlaying = ref(false);
+      const previewVoiceProgress = ref(0);
+      let previewAudioEl = null;
 
       // ===== 共享日记本相关状态 =====
       const currentGroupId = ref(null);       // null=私人日记视图；非null=查看某共享本
@@ -2303,10 +2458,23 @@
         loadDiaryMonthly();
       };
 
+      // 清空表单媒体状态
+      const resetFormMedia = () => {
+        diaryFormExistingImages.value = [];
+        diaryFormExistingVoices.value = [];
+        diaryFormNewImages.value = [];
+        diaryFormNewVoice.value = null;
+        diaryDeletedMediaIds.value = [];
+        diaryUploading.value = false;
+        // 停止录音（如果在录）
+        if (isRecording.value) cancelRecording();
+      };
+
       // 打开新建表单
       const openDiaryCreate = () => {
         diaryFormMode.value = 'create';
-        Object.assign(diaryForm, { id: null, title: '', content: '', mood: '', weather: '', tags: '', diaryDate: formatDate(new Date()), groupId: currentGroupId.value });
+        Object.assign(diaryForm, { id: null, title: '', content: '', mood: '', weather: '', tags: '', diaryDate: formatDate(new Date()), groupId: currentGroupId.value, status: 'draft' });
+        resetFormMedia();
         diaryFormVisible.value = true;
       };
 
@@ -2325,8 +2493,14 @@
               mood: d.mood || '',
               weather: d.weather || '',
               tags: (d.tags || []).join(','),
-              diaryDate: d.diaryDate || formatDate(new Date())
+              diaryDate: d.diaryDate || formatDate(new Date()),
+              status: d.status || 'draft'
             });
+            // 回填已有媒体
+            resetFormMedia();
+            const mediaList = d.media || [];
+            diaryFormExistingImages.value = mediaList.filter(m => m.type === 1).map(m => ({ id: m.id, url: m.url }));
+            diaryFormExistingVoices.value = mediaList.filter(m => m.type === 2).map(m => ({ id: m.id, url: m.url, duration: m.duration || 0 }));
             diaryPreviewVisible.value = false;
             diaryFormVisible.value = true;
           } else { vant.showToast({ type: 'fail', message: data.msg || '加载失败' }); }
@@ -2345,9 +2519,12 @@
         } catch { vant.showToast({ type: 'fail', message: '请求失败' }); }
       };
 
-      // 保存（新建/编辑）
+      // 保存（新建/编辑）+ 上传媒体
       const saveDiary = async () => {
         if (!diaryForm.content.trim()) { vant.showToast('正文不能为空'); return; }
+        // 已发布日记不允许保存
+        if (diaryForm.status === 'published') { vant.showToast('已发布的日记不可修改'); return; }
+        diaryUploading.value = true;
         try {
           const payload = {
             title: diaryForm.title || null,
@@ -2366,12 +2543,177 @@
             resp = await apiFetch('/api/diary/' + diaryForm.id, { method: 'PUT', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(payload) });
           }
           const data = await resp.json();
-          if (data.ok) {
-            vant.showToast({ type: 'success', message: diaryFormMode.value === 'create' ? '已保存' : '已更新' });
-            diaryFormVisible.value = false;
-            loadDiaryMonthly();
-          } else { vant.showToast({ type: 'fail', message: data.msg || '保存失败' }); }
+          if (!data.ok) { vant.showToast({ type: 'fail', message: data.msg || '保存失败' }); return; }
+
+          // 获取日记ID（新建返回的或编辑已有的）
+          const diaryId = diaryFormMode.value === 'create' ? data.id : diaryForm.id;
+
+          // 删除标记删除的已有媒体
+          for (const mid of diaryDeletedMediaIds.value) {
+            try {
+              await apiFetch('/api/diary/media/' + mid, { method: 'DELETE' });
+            } catch (e) { /* 忽略单个删除失败 */ }
+          }
+
+          // 上传新图片
+          if (diaryFormNewImages.value.length > 0) {
+            const formData = new FormData();
+            for (const img of diaryFormNewImages.value) {
+              formData.append('file', img.file);
+            }
+            try {
+              const imgResp = await apiFetch('/api/diary/' + diaryId + '/media/image', { method: 'POST', body: formData });
+              const imgData = await imgResp.json();
+              if (!imgData.ok) { vant.showToast({ type: 'fail', message: imgData.msg || '图片上传失败' }); }
+            } catch (e) { vant.showToast({ type: 'fail', message: '图片上传失败' }); }
+          }
+
+          // 上传新语音
+          if (diaryFormNewVoice.value) {
+            const formData = new FormData();
+            formData.append('file', diaryFormNewVoice.value.blob, 'voice.webm');
+            formData.append('duration', String(diaryFormNewVoice.value.duration));
+            try {
+              const voiceResp = await apiFetch('/api/diary/' + diaryId + '/media/voice', { method: 'POST', body: formData });
+              const voiceData = await voiceResp.json();
+              if (!voiceData.ok) { vant.showToast({ type: 'fail', message: voiceData.msg || '语音上传失败' }); }
+            } catch (e) { vant.showToast({ type: 'fail', message: '语音上传失败' }); }
+          }
+
+          vant.showToast({ type: 'success', message: diaryFormMode.value === 'create' ? '已保存' : '已更新' });
+          diaryFormVisible.value = false;
+          resetFormMedia();
+          loadDiaryMonthly();
         } catch { vant.showToast({ type: 'fail', message: '请求失败' }); }
+        finally { diaryUploading.value = false; }
+      };
+
+      // ===== 媒体操作方法 =====
+      // 选择图片
+      const onImageSelect = (e) => {
+        const files = Array.from(e.target.files || []);
+        const remain = 9 - diaryFormExistingImages.value.length - diaryFormNewImages.value.length;
+        if (files.length > remain) { vant.showToast('最多9张图片'); }
+        for (const file of files.slice(0, remain)) {
+          if (file.size > 5 * 1024 * 1024) { vant.showToast(file.name + ' 超过5MB'); continue; }
+          if (!file.type.startsWith('image/')) continue;
+          diaryFormNewImages.value.push({ file, previewUrl: URL.createObjectURL(file) });
+        }
+        e.target.value = ''; // 清空input，允许重复选同一文件
+      };
+      // 删除新选图片
+      const removeNewImage = (idx) => {
+        const img = diaryFormNewImages.value[idx];
+        if (img && img.previewUrl) URL.revokeObjectURL(img.previewUrl);
+        diaryFormNewImages.value.splice(idx, 1);
+      };
+      // 删除已有媒体（标记删除）
+      const removeExistingMedia = (mediaId) => {
+        diaryDeletedMediaIds.value.push(mediaId);
+        diaryFormExistingImages.value = diaryFormExistingImages.value.filter(m => m.id !== mediaId);
+        diaryFormExistingVoices.value = diaryFormExistingVoices.value.filter(m => m.id !== mediaId);
+      };
+      // 删除新录音
+      const removeNewVoice = () => { diaryFormNewVoice.value = null; };
+      // 预览图片（表单内）
+      const previewFormImage = (url) => {
+        // 收集所有图片URL用于滑动预览
+        const allUrls = [
+          ...diaryFormExistingImages.value.map(i => i.url),
+          ...diaryFormNewImages.value.map(i => i.previewUrl)
+        ];
+        const idx = allUrls.indexOf(url);
+        vant.ImagePreview({ images: allUrls, startPosition: idx >= 0 ? idx : 0 });
+      };
+      // 预览图片（纯享预览页）
+      const previewImages = (mediaList, url) => {
+        const urls = mediaList.filter(m => m.type === 1).map(m => m.url);
+        const idx = urls.indexOf(url);
+        vant.ImagePreview({ images: urls, startPosition: idx >= 0 ? idx : 0 });
+      };
+
+      // ===== 录音方法 =====
+      const startRecording = async () => {
+        try {
+          audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          // Chrome/Edge 优先 webm/opus
+          let mimeType = 'audio/webm;codecs=opus';
+          if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'audio/webm';
+          if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = '';
+          mediaRecorder = mimeType ? new MediaRecorder(audioStream, { mimeType }) : new MediaRecorder(audioStream);
+          const chunks = [];
+          mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+            diaryFormNewVoice.value = { blob, duration: recordingSeconds.value };
+          };
+          mediaRecorder.start();
+          isRecording.value = true;
+          recordingSeconds.value = 0;
+          recordingTimer = setInterval(() => {
+            recordingSeconds.value++;
+            if (recordingSeconds.value >= 300) stopRecording(); // 5分钟自动停
+          }, 1000);
+        } catch (e) {
+          vant.showToast({ type: 'fail', message: '无法访问麦克风' });
+        }
+      };
+      const stopRecording = () => {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        if (audioStream) { audioStream.getTracks().forEach(t => t.stop()); audioStream = null; }
+        if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
+        isRecording.value = false;
+      };
+      const cancelRecording = () => {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.onstop = null; // 取消时不保存
+          mediaRecorder.stop();
+        }
+        if (audioStream) { audioStream.getTracks().forEach(t => t.stop()); audioStream = null; }
+        if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
+        isRecording.value = false;
+        recordingSeconds.value = 0;
+      };
+
+      // 格式化时长（秒 -> M:SS）
+      const formatDuration = (sec) => {
+        if (!sec) return '0:00';
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return m + ':' + String(s).padStart(2, '0');
+      };
+
+      // ===== 预览页语音播放 =====
+      const playPreviewVoice = () => {
+        if (!diaryPreview.value || !diaryPreview.value.media) return;
+        const voice = diaryPreview.value.media.find(m => m.type === 2);
+        if (!voice) return;
+        if (!previewAudioEl) {
+          previewAudioEl = new Audio(voice.url);
+          previewAudioEl.addEventListener('timeupdate', () => {
+            if (previewAudioEl.duration) {
+              previewVoiceProgress.value = (previewAudioEl.currentTime / previewAudioEl.duration) * 100;
+            }
+          });
+          previewAudioEl.addEventListener('ended', () => {
+            previewVoicePlaying.value = false;
+            previewVoiceProgress.value = 0;
+          });
+        }
+        if (previewVoicePlaying.value) {
+          previewAudioEl.pause();
+          previewVoicePlaying.value = false;
+        } else {
+          // 如果URL变了重新加载
+          if (previewAudioEl.src !== voice.url) { previewAudioEl.src = voice.url; }
+          previewAudioEl.play();
+          previewVoicePlaying.value = true;
+        }
+      };
+      const closePreviewVoice = () => {
+        if (previewAudioEl) { previewAudioEl.pause(); previewAudioEl = null; }
+        previewVoicePlaying.value = false;
+        previewVoiceProgress.value = 0;
       };
 
       // 删除日记
@@ -2391,6 +2733,7 @@
 
       // 关闭纯享预览页
       const closeDiaryPreview = () => {
+        closePreviewVoice();
         diaryPreviewVisible.value = false;
         diaryPreview.value = null;
       };
@@ -2827,6 +3170,14 @@
         loadDiaryMonthly, prevMonth, nextMonth, toggleSort,
         openDiaryCreate, openDiaryEdit, openDiaryDetail, saveDiary, deleteDiary,
         closeDiaryPreview, publishDiary,
+        // 日记媒体
+        diaryFormExistingImages, diaryFormExistingVoices, diaryFormNewImages, diaryFormNewVoice,
+        diaryUploading, isRecording, recordingSeconds,
+        previewVoicePlaying, previewVoiceProgress,
+        onImageSelect, removeNewImage, removeExistingMedia, removeNewVoice,
+        previewFormImage, previewImages, formatDuration,
+        startRecording, stopRecording, cancelRecording,
+        playPreviewVoice,
         // 月历面板
         calendarVisible, calendarYear, calendarMonth, calendarDays,
         todayYear, todayMonth, todayDay, diarySelectedDay,

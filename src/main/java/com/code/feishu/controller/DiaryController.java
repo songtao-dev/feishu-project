@@ -6,9 +6,11 @@ import com.code.feishu.dto.DiaryDTO;
 import com.code.feishu.entity.Diary;
 import com.code.feishu.entity.DiaryGroup;
 import com.code.feishu.entity.DiaryGroupMember;
+import com.code.feishu.entity.DiaryMedia;
 import com.code.feishu.mapper.DiaryGroupMapper;
 import com.code.feishu.mapper.DiaryGroupMemberMapper;
 import com.code.feishu.mapper.DiaryMapper;
+import com.code.feishu.mapper.DiaryMediaMapper;
 import com.code.feishu.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
@@ -73,15 +75,18 @@ public class DiaryController {
     private final DiaryGroupMapper groupMapper;
     private final DiaryGroupMemberMapper memberMapper;
     private final UserService userService;
+    private final DiaryMediaMapper mediaMapper;
 
     public DiaryController(DiaryMapper diaryMapper,
                            DiaryGroupMapper groupMapper,
                            DiaryGroupMemberMapper memberMapper,
-                           UserService userService) {
+                           UserService userService,
+                           DiaryMediaMapper mediaMapper) {
         this.diaryMapper = diaryMapper;
         this.groupMapper = groupMapper;
         this.memberMapper = memberMapper;
         this.userService = userService;
+        this.mediaMapper = mediaMapper;
     }
 
     // ==================== 新建 ====================
@@ -418,7 +423,7 @@ public class DiaryController {
         }
     }
 
-    /** 构建日记详情返回对象（含完整字段） */
+    /** 构建日记详情返回对象（含完整字段 + 媒体列表） */
     private Map<String, Object> buildDiaryDetail(Diary d) {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("id", d.getId());
@@ -434,10 +439,11 @@ public class DiaryController {
         item.put("diaryDate", d.getDiaryDate() != null ? d.getDiaryDate().toString() : null);
         item.put("createTime", d.getCreateTime());
         item.put("updateTime", d.getUpdateTime());
+        item.put("media", queryMediaList(d.getId()));
         return item;
     }
 
-    /** 构建日记预览返回对象（列表用，正文只取前15字） */
+    /** 构建日记预览返回对象（列表用，正文只取前15字 + 媒体计数） */
     private Map<String, Object> buildDiaryPreview(Diary d) {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("id", d.getId());
@@ -452,7 +458,59 @@ public class DiaryController {
         item.put("weatherEmoji", WEATHER_EMOJI.getOrDefault(d.getWeather(), ""));
         item.put("tags", parseTags(d.getTags()));
         item.put("status", d.getStatus() != null ? d.getStatus() : STATUS_DRAFT);
+        // 媒体计数（前端列表卡片显示"有图/有语音"标识用）
+        int[] counts = queryMediaCounts(d.getId());
+        item.put("imageCount", counts[0]);
+        item.put("voiceCount", counts[1]);
+        // 第一张图URL（列表卡片缩略图用，没有则null）
+        item.put("coverImage", queryCoverImage(d.getId()));
         return item;
+    }
+
+    /** 查询某篇日记的媒体列表（按 sortOrder 升序，仅未删除） */
+    private List<Map<String, Object>> queryMediaList(Long diaryId) {
+        LambdaQueryWrapper<DiaryMedia> qw = new LambdaQueryWrapper<>();
+        qw.eq(DiaryMedia::getDiaryId, diaryId)
+          .eq(DiaryMedia::getDeleted, 0)
+          .orderByAsc(DiaryMedia::getSortOrder);
+        List<DiaryMedia> list = mediaMapper.selectList(qw);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (DiaryMedia m : list) {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", m.getId());
+            map.put("type", m.getType());
+            map.put("url", m.getUrl());
+            map.put("mime", m.getMime());
+            map.put("duration", m.getDuration());
+            map.put("sortOrder", m.getSortOrder());
+            result.add(map);
+        }
+        return result;
+    }
+
+    /** 查询媒体计数 [图片数, 语音数] */
+    private int[] queryMediaCounts(Long diaryId) {
+        LambdaQueryWrapper<DiaryMedia> qw = new LambdaQueryWrapper<>();
+        qw.eq(DiaryMedia::getDiaryId, diaryId).eq(DiaryMedia::getDeleted, 0);
+        List<DiaryMedia> list = mediaMapper.selectList(qw);
+        int imgCount = 0, voiceCount = 0;
+        for (DiaryMedia m : list) {
+            if (m.getType() != null && m.getType() == 1) imgCount++;
+            else if (m.getType() != null && m.getType() == 2) voiceCount++;
+        }
+        return new int[]{imgCount, voiceCount};
+    }
+
+    /** 查询第一张图片URL（作为列表卡片封面） */
+    private String queryCoverImage(Long diaryId) {
+        LambdaQueryWrapper<DiaryMedia> qw = new LambdaQueryWrapper<>();
+        qw.eq(DiaryMedia::getDiaryId, diaryId)
+          .eq(DiaryMedia::getDeleted, 0)
+          .eq(DiaryMedia::getType, 1)
+          .orderByAsc(DiaryMedia::getSortOrder)
+          .last("LIMIT 1");
+        DiaryMedia cover = mediaMapper.selectOne(qw);
+        return cover != null ? cover.getUrl() : null;
     }
 
     /** 构建日记列表项（搜索/回收站用，含作者信息和 isMine 标记） */
