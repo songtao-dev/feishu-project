@@ -117,6 +117,47 @@ public class UserController {
     }
 
     /**
+     * 更新当前用户昵称。
+     * PUT /api/user/nickname
+     * 请求：{"nickname":"新昵称"}
+     */
+    @PutMapping("/user/nickname")
+    public Map<String, Object> updateNickname(@RequestBody Map<String, String> body) {
+        Map<String, Object> resp = new LinkedHashMap<>();
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            resp.put("ok", false);
+            resp.put("msg", "未登录");
+            return resp;
+        }
+        String nickname = body.get("nickname");
+        if (nickname == null || nickname.isBlank()) {
+            resp.put("ok", false);
+            resp.put("msg", "昵称不能为空");
+            return resp;
+        }
+        if (nickname.length() > 32) {
+            resp.put("ok", false);
+            resp.put("msg", "昵称最多32个字符");
+            return resp;
+        }
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            resp.put("ok", false);
+            resp.put("msg", "用户不存在");
+            return resp;
+        }
+        user.setNickname(nickname.trim());
+        userMapper.updateById(user);
+
+        // 更新本地缓存
+        UserInfoVO vo = userService.getInfo(userId);
+        resp.put("ok", true);
+        resp.put("nickname", vo != null ? vo.getNickname() : nickname);
+        return resp;
+    }
+
+    /**
      * 临时调试接口：重置 admin 密码（排查登录失败用）。
      * GET /api/reset-admin-password?raw=admin123
      * 会把 admin 的密码重置为 raw 参数指定的明文。
