@@ -331,6 +331,41 @@
   .diary-card.glow-published .card-title::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #22c55e; margin-left: 6px; vertical-align: middle; box-shadow: 0 0 6px rgba(34,197,94,0.6); animation: glow-pulse 2.5s ease-in-out infinite; }
   @keyframes glow-pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
 
+  /* ===== 待办模块（仿小米记事本）===== */
+  .todo-page { padding: 20px; }
+  .todo-input-area { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #fff; border-radius: 14px; border: 1px solid #eee; box-shadow: 0 1px 3px rgba(0,0,0,0.03); margin-bottom: 24px; }
+  .todo-input-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ddd; flex-shrink: 0; }
+  .todo-input { flex: 1; border: none; outline: none; font-size: 15px; color: #1a1a1a; background: transparent; font-family: inherit; }
+  .todo-input::placeholder { color: #bbb; }
+
+  .todo-section { margin-bottom: 24px; }
+  .todo-section-label { font-size: 12px; color: #999; font-weight: 600; padding: 0 4px 10px; letter-spacing: 0.5px; }
+  .todo-section-label.done { color: #bbb; }
+
+  .todo-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #fff; border-radius: 12px; margin-bottom: 6px; transition: background 0.15s; }
+  .todo-item:active { background: #fafafa; }
+  .todo-item.done .todo-content { color: #bbb; text-decoration: line-through; }
+
+  .todo-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ddd; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .todo-circle:active { transform: scale(0.9); }
+  .todo-circle.checked { background: #1a1a1a; border-color: #1a1a1a; }
+  .check-mark { color: #fff; font-size: 12px; font-weight: 700; line-height: 1; }
+
+  .todo-content { flex: 1; font-size: 15px; color: #1a1a1a; line-height: 1.5; word-break: break-word; cursor: pointer; }
+  .todo-del { background: none; border: none; color: #ccc; font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1; }
+  .todo-del:active { color: #e53935; }
+
+  .todo-empty { text-align: center; padding: 80px 20px; color: #ccc; }
+  .todo-empty-icon { width: 56px; height: 56px; border-radius: 50%; background: #f5f5f5; color: #ccc; font-size: 28px; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+  .todo-empty-text { font-size: 15px; color: #999; margin-bottom: 6px; }
+  .todo-empty-sub { font-size: 12px; color: #ccc; }
+
+  .todo-edit-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .todo-edit-panel { width: 100%; max-width: 400px; background: #fff; border-radius: 16px; padding: 20px; }
+  .todo-edit-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .todo-edit-head .title { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+  .todo-edit-head .save { color: #1a1a1a; font-weight: 600; font-size: 15px; cursor: pointer; }
+
   /* ===== 日迹模块 ===== */
   .daily-header { display: flex; align-items: center; gap: 10px; padding: 12px 20px 8px; position: relative; }
   .daily-nav-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e8e8e8; background: #fff; color: #666; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
@@ -877,6 +912,69 @@
     </template>
   </template><!-- ===== /日迹 tab ===== -->
 
+  <!-- ===== 待办 tab ===== -->
+  <template v-if="tab==='todo'">
+    <div class="todo-page">
+      <!-- 新建输入框（回车连续添加） -->
+      <div class="todo-input-area">
+        <div class="todo-input-circle"></div>
+        <input
+          v-model="todoInput"
+          class="todo-input"
+          placeholder="添加待办，回车确认"
+          @keyup.enter="addTodo"
+          maxlength="500"
+        />
+      </div>
+
+      <!-- 未完成 -->
+      <div v-if="todoPending.length > 0" class="todo-section">
+        <div class="todo-section-label">待办 · {{ todoPending.length }}</div>
+        <div v-for="t in todoPending" :key="t.id" class="todo-item">
+          <div class="todo-circle" @click="toggleTodo(t.id)"></div>
+          <div class="todo-content" @click="startEditTodo(t)">{{ t.content }}</div>
+          <button class="todo-del" @click="deleteTodo(t.id)">×</button>
+        </div>
+      </div>
+
+      <!-- 已完成 -->
+      <div v-if="todoDone.length > 0" class="todo-section">
+        <div class="todo-section-label done">已完成 · {{ todoDone.length }}</div>
+        <div v-for="t in todoDone" :key="t.id" class="todo-item done">
+          <div class="todo-circle checked" @click="toggleTodo(t.id)">
+            <span class="check-mark">✓</span>
+          </div>
+          <div class="todo-content" @click="startEditTodo(t)">{{ t.content }}</div>
+          <button class="todo-del" @click="deleteTodo(t.id)">×</button>
+        </div>
+      </div>
+
+      <!-- 空态 -->
+      <div v-if="todoPending.length === 0 && todoDone.length === 0" class="todo-empty">
+        <div class="todo-empty-icon">✓</div>
+        <div class="todo-empty-text">暂无待办</div>
+        <div class="todo-empty-sub">添加一条待办开始吧</div>
+      </div>
+
+      <!-- 编辑弹层 -->
+      <div v-if="todoEditing" class="todo-edit-mask" @click.self="todoEditing = null">
+        <div class="todo-edit-panel" @click.stop>
+          <div class="todo-edit-head">
+            <span class="title">编辑待办</span>
+            <span class="save" @click="saveEditTodo">保存</span>
+          </div>
+          <input
+            v-model="todoEditText"
+            class="nickname-input"
+            maxlength="500"
+            placeholder="待办内容"
+            @keyup.enter="saveEditTodo"
+          />
+        </div>
+      </div>
+    </div>
+  </template><!-- ===== /待办 tab ===== -->
+
   <!-- ===== 我的 tab ===== -->
   <template v-if="tab==='me'">
     <div class="me-page">
@@ -961,7 +1059,7 @@
       </div>
   </template><!-- ===== /我的 tab ===== -->
 
-  <!-- 底部 3 tab 导航 -->
+  <!-- 底部 5 tab 导航 -->
   <div class="tab-bar">
     <div :class="['tab-item', tab==='account' && 'active']" @click="switchTab('account')">
       <span class="tab-label">记账</span>
@@ -971,6 +1069,9 @@
     </div>
     <div :class="['tab-item', tab==='daily' && 'active']" @click="switchTab('daily')">
       <span class="tab-label">日迹</span>
+    </div>
+    <div :class="['tab-item', tab==='todo' && 'active']" @click="switchTab('todo')">
+      <span class="tab-label">待办</span>
     </div>
     <div :class="['tab-item', tab==='me' && 'active']" @click="switchTab('me')">
       <span class="tab-label">我的</span>
@@ -1355,6 +1456,99 @@
         }
       };
 
+      // ===== 待办模块（仿小米记事本）=====
+      const todoInput = ref('');
+      const todoPending = ref([]);
+      const todoDone = ref([]);
+      const todoEditing = ref(null);
+      const todoEditText = ref('');
+
+      const loadTodos = async () => {
+        try {
+          const resp = await apiFetch('/api/todo');
+          const data = await resp.json();
+          if (data.ok) {
+            todoPending.value = data.pending || [];
+            todoDone.value = data.done || [];
+          }
+        } catch (e) { /* 静默 */ }
+      };
+
+      const addTodo = async () => {
+        const content = todoInput.value.trim();
+        if (!content) return;
+        try {
+          const resp = await apiFetch('/api/todo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content })
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            todoInput.value = '';  // 清空输入框，方便连续添加
+            await loadTodos();
+          } else {
+            vant.showToast({ type: 'fail', message: data.msg || '添加失败' });
+          }
+        } catch (e) {
+          vant.showToast({ type: 'fail', message: '网络错误' });
+        }
+      };
+
+      const toggleTodo = async (id) => {
+        try {
+          const resp = await apiFetch(`/api/todo/${id}/toggle`, { method: 'PUT' });
+          const data = await resp.json();
+          if (data.ok) {
+            await loadTodos();
+          }
+        } catch (e) {
+          vant.showToast({ type: 'fail', message: '网络错误' });
+        }
+      };
+
+      const deleteTodo = async (id) => {
+        try {
+          const resp = await apiFetch(`/api/todo/${id}`, { method: 'DELETE' });
+          const data = await resp.json();
+          if (data.ok) {
+            await loadTodos();
+          }
+        } catch (e) {
+          vant.showToast({ type: 'fail', message: '网络错误' });
+        }
+      };
+
+      const startEditTodo = (t) => {
+        todoEditing.value = t;
+        todoEditText.value = t.content;
+      };
+
+      const saveEditTodo = async () => {
+        if (!todoEditing.value) return;
+        const content = todoEditText.value.trim();
+        if (!content) {
+          vant.showToast({ type: 'fail', message: '内容不能为空' });
+          return;
+        }
+        try {
+          const resp = await apiFetch(`/api/todo/${todoEditing.value.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content })
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            todoEditing.value = null;
+            await loadTodos();
+          } else {
+            vant.showToast({ type: 'fail', message: data.msg || '保存失败' });
+          }
+        } catch (e) {
+          vant.showToast({ type: 'fail', message: '网络错误' });
+        }
+      };
+
       // 已登录状态（刷新页面后）自动加载 sms_key 和发布配置
       onMounted(() => {
         if (isLoggedIn.value) {
@@ -1546,6 +1740,7 @@
         if (t === 'account') { pageTitle.value = '记账'; }
         else if (t === 'diary') { pageTitle.value = '日记'; loadGroupList(); loadPendingList(); loadDiaryMonthly(); }
         else if (t === 'daily') { pageTitle.value = '日迹'; loadDaily(); }
+        else if (t === 'todo') { pageTitle.value = '待办'; loadTodos(); }
         else if (t === 'me') { pageTitle.value = '我的'; }
       };
 
@@ -2201,6 +2396,8 @@
         doLogin, logout, copySmsKey,
         publishConfig, publishConfigVisible, openPublishConfig, savePublishConfig,
         nicknameEditVisible, openNicknameEdit, saveNickname, nicknameInput,
+        todoInput, todoPending, todoDone, todoEditing, todoEditText,
+        loadTodos, addTodo, toggleTodo, deleteTodo, startEditTodo, saveEditTodo,
         // 主 tab + 页面标题
         tab, inputMode, pageTitle, switchTab,
         // 记账
