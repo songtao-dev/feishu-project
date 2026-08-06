@@ -184,4 +184,37 @@ public class UserController {
         resp.put("newHash", newHash);
         return resp;
     }
+
+    /**
+     * 修改密码（已登录用户）。
+     * PUT /api/user/password
+     * body: { "oldPassword": "xxx", "newPassword": "yyy" }
+     */
+    @PutMapping("/user/password")
+    public Map<String, Object> changePassword(@RequestBody Map<String, String> body) {
+        Map<String, Object> resp = new LinkedHashMap<>();
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            resp.put("ok", false); resp.put("msg", "未登录"); return resp;
+        }
+        String oldPassword = body.get("oldPassword");
+        String newPassword = body.get("newPassword");
+        if (oldPassword == null || oldPassword.isBlank()) {
+            resp.put("ok", false); resp.put("msg", "请输入原密码"); return resp;
+        }
+        if (newPassword == null || newPassword.length() < 6) {
+            resp.put("ok", false); resp.put("msg", "新密码至少6位"); return resp;
+        }
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            resp.put("ok", false); resp.put("msg", "用户不存在"); return resp;
+        }
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            resp.put("ok", false); resp.put("msg", "原密码错误"); return resp;
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userMapper.updateById(user);
+        resp.put("ok", true); resp.put("msg", "密码修改成功");
+        return resp;
+    }
 }

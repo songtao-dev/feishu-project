@@ -455,6 +455,19 @@ public class DiaryController {
         return item;
     }
 
+    /** 构建日记列表项（搜索/回收站用，含作者信息和 isMine 标记） */
+    private Map<String, Object> toListItem(Diary d, Long currentUserId, UserService userService) {
+        Map<String, Object> item = buildDiaryPreview(d);
+        item.put("createTime", d.getCreateTime());
+        item.put("updateTime", d.getUpdateTime());
+        item.put("authorUserId", d.getAuthorUserId());
+        item.put("authorName",
+                d.getAuthorUserId() == null ? "" : userService.getDisplayName(d.getAuthorUserId()));
+        item.put("isMine", Objects.equals(
+                d.getGroupId() == null ? d.getUserId() : d.getAuthorUserId(), currentUserId));
+        return item;
+    }
+
     /** 按码点截取前 N 字，超出加省略号 */
     private String makePreview(String content) {
         if (content == null) return "";
@@ -475,5 +488,110 @@ public class DiaryController {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+    // ============================================================
+    // 日记搜索/筛选
+    // ============================================================
+
+    /**
+     * 搜索日记。
+     * GET /api/diary/search?keyword=开心&mood=happy&weather=sunny&tag=工作&start=2025-08-01&end=2025-08-31&limit=100
+     */
+    @GetMapping("/search")
+    public Map<String, Object> searchDiary(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String mood,
+            @RequestParam(required = false) String weather,
+            @RequestParam(required = false) String tag,
+            @RequestParam(required = false) String start,
+            @RequestParam(required = false) String end,
+            @RequestParam(defaultValue = "100") int limit) {
+        Long userId = UserContext.getUserId();
+        if (limit <= 0 || limit > 500) limit = 100;
+
+        var wrapper = new LambdaQueryWrapper<Diary>()
+                .eq(Diary::getUserId, userId)
+                .eq(Diary::getDeleted, 0)
+                .orderByDesc(Diary::getDiaryDate)
+                .last("LIMIT " + limit);
+
+        if (keyword != null && !keyword.isBlank()) {
+            String kw = "%" + keyword.trim() + "%";
+            wrapper.and(w -> w.like(Diary::getTitle, kw).or().like(Diary::getContent, kw));
+        }
+        if (mood != null && !mood.isBlank() && !"全部".equals(mood)) wrapper.eq(Diary::getMood, mood);
+        if (weather != null && !weather.isBlank() && !"全部".equals(weather)) wrapper.eq(Diary::getWeather, weather);
+        if (tag != null && !tag.isBlank()) wrapper.like(Diary::getTags, "%" + tag + "%");
+        if (start != null && !start.isBlank()) wrapper.ge(Diary::getDiaryDate, start);
+        if (end != null && !end.isBlank()) wrapper.le(Diary::getDiaryDate, end);
+
+        List<Diary> list = diaryMapper.selectList(wrapper);
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (Diary d : list) items.add(toListItem(d, userId, userService));
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("total", items.size());
+        resp.put("list", items);
+        return resp;
+    }
+
+    /**
+     * 软删除日记（移到回收站）。
+     * PUT /api/diary/{id}/trash
+     */
+    @PutMapping("/{id}/trash")
+    public Map<String, Object> trashDiary(@PathVariable Long id) {
+        Diary d = diaryMapper.selectById(id);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        if (d == null) { resp.put("ok", false); resp.put("msg", "日记不存在"); return resp; }
+        Long uid = UserContext.getUserId();
+        if (d.getUserId() == null || !d.getUserId().equals(uid)) {
+            resp.put("ok", false); resp.put("msg", "无权操作"); return resp;
+        }
+        d.setDeleted(1);
+        diaryMapper.updateById(d);
+        resp.put("ok", true); return resp;
+    }
+
+    /**
+     * 日记回收站列表。
+     * GET /api/diary/trash
+     */
+    @GetMapping("/trash")
+    public Map<String, Object> diaryTrashList() {
+        Long userId = UserContext.getUserId();
+        List<Diary> list = diaryMapper.selectList(
+                new LambdaQueryWrapper<Diary>()
+                        .eq(Diary::getUserId, userId)
+                        .eq(Diary::getDeleted, 1)
+                        .orderByDesc(Diary::getUpdateTime)
+                        .last("LIMIT 500")
+        );
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (Diary d : list) items.add(toListItem(d, userId, userService));
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true); resp.put("total", items.size()); resp.put("list", items);
+        return resp;
+    }
+
+    /**
+     * 恢复日记。
+     * PUT /api/diary/{id}/restore
+     */
+    @PutMapping("/{id}/restore")
+    public Map<String, Object> restoreDiary(@PathVariable Long id) {
+        Diary d = diaryMapper.selectById(id);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        if (d == null) { resp.put("ok", false); resp.put("msg", "日记不存在"); return resp; }
+        Long uid = UserContext.getUserId();
+        if (d.getUserId() == null || !d.getUserId().equals(uid)) {
+            resp.put("ok", false); resp.put("msg", "无权操作"); return resp;
+        }
+        d.setDeleted(0);
+        diaryMapper.updateById(d);
+        resp.put("ok", true); return resp;
     }
 }

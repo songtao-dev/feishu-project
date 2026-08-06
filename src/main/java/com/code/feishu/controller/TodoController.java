@@ -157,7 +157,7 @@ public class TodoController {
         return resp;
     }
 
-    /** 删除 */
+    /** 删除 —— 软删除（移到回收站） */
     @DeleteMapping("/{id}")
     public Map<String, Object> delete(@PathVariable Long id) {
         Map<String, Object> resp = new LinkedHashMap<>();
@@ -175,8 +175,82 @@ public class TodoController {
             return resp;
         }
 
-        todoMapper.deleteById(id);
+        todo.setDeleted(1);
+        todoMapper.updateById(todo);
         resp.put("ok", true);
         return resp;
+    }
+
+    /**
+     * 搜索待办。
+     * GET /api/todo/search?keyword=买菜&completed=0&limit=100
+     *   completed: 0=未完成 1=已完成，不传则全部
+     */
+    @GetMapping("/search")
+    public Map<String, Object> search(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer completed,
+            @RequestParam(defaultValue = "100") int limit) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            Map<String, Object> resp = new LinkedHashMap<>();
+            resp.put("ok", false); resp.put("msg", "未登录"); return resp;
+        }
+        if (limit <= 0 || limit > 500) limit = 100;
+
+        var wrapper = new LambdaQueryWrapper<Todo>()
+                .eq(Todo::getUserId, userId)
+                .eq(Todo::getDeleted, 0)
+                .orderByAsc(Todo::getCompleted)
+                .orderByAsc(Todo::getSortOrder)
+                .orderByDesc(Todo::getCreateTime)
+                .last("LIMIT " + limit);
+
+        if (keyword != null && !keyword.isBlank()) {
+            wrapper.like(Todo::getContent, "%" + keyword.trim() + "%");
+        }
+        if (completed != null) {
+            wrapper.eq(Todo::getCompleted, completed);
+        }
+
+        List<Todo> list = todoMapper.selectList(wrapper);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true); resp.put("total", list.size()); resp.put("list", list);
+        return resp;
+    }
+
+    /** 待办回收站列表。GET /api/todo/trash */
+    @GetMapping("/trash")
+    public Map<String, Object> trashList() {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            Map<String, Object> resp = new LinkedHashMap<>();
+            resp.put("ok", false); resp.put("msg", "未登录"); return resp;
+        }
+        List<Todo> list = todoMapper.selectList(
+                new LambdaQueryWrapper<Todo>()
+                        .eq(Todo::getUserId, userId)
+                        .eq(Todo::getDeleted, 1)
+                        .orderByDesc(Todo::getUpdateTime)
+                        .last("LIMIT 500")
+        );
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true); resp.put("total", list.size()); resp.put("list", list);
+        return resp;
+    }
+
+    /** 恢复待办。PUT /api/todo/{id}/restore */
+    @PutMapping("/{id}/restore")
+    public Map<String, Object> restore(@PathVariable Long id) {
+        Long userId = UserContext.getUserId();
+        Map<String, Object> resp = new LinkedHashMap<>();
+        if (userId == null) { resp.put("ok", false); resp.put("msg", "未登录"); return resp; }
+        Todo todo = todoMapper.selectById(id);
+        if (todo == null || !todo.getUserId().equals(userId)) {
+            resp.put("ok", false); resp.put("msg", "待办不存在"); return resp;
+        }
+        todo.setDeleted(0);
+        todoMapper.updateById(todo);
+        resp.put("ok", true); return resp;
     }
 }

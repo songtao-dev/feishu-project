@@ -511,4 +511,209 @@ public class MessageController {
         }
         return null;
     }
+
+    // ============================================================
+    // 以下为新增接口：搜索 / 分类列表 / CSV 导出 / 回收站
+    // ============================================================
+
+    /**
+     * 搜索+筛选记账记录。
+     * GET /api/records/search?keyword=餐饮&category=餐饮&direction=支出&start=2025-08-01&end=2025-08-05&limit=50
+     */
+    @GetMapping("/records/search")
+    public Map<String, Object> searchRecords(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String direction,
+            @RequestParam(required = false) String start,
+            @RequestParam(required = false) String end,
+            @RequestParam(defaultValue = "100") int limit) {
+        Long userId = UserContext.getUserId();
+        if (limit <= 0 || limit > 500) limit = 100;
+
+        var wrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MessageRecord>()
+                .eq(MessageRecord::getUserId, userId)
+                .eq(MessageRecord::getDeleted, 0)
+                .orderByDesc(MessageRecord::getSortNum)
+                .last("LIMIT " + limit);
+
+        if (keyword != null && !keyword.isBlank()) {
+            String kw = "%" + keyword.trim() + "%";
+            wrapper.and(w -> w.like(MessageRecord::getMerchant, kw)
+                    .or().like(MessageRecord::getBank, kw)
+                    .or().like(MessageRecord::getChannel, kw)
+                    .or().like(MessageRecord::getRawMessage, kw));
+        }
+        if (category != null && !category.isBlank() && !"全部".equals(category)) {
+            wrapper.eq(MessageRecord::getTransType, category);
+        }
+        if (direction != null && !direction.isBlank() && !"全部".equals(direction)) {
+            wrapper.eq(MessageRecord::getDirection, direction);
+        }
+        if (start != null && !start.isBlank()) {
+            wrapper.ge(MessageRecord::getCreateTime, start + " 00:00:00");
+        }
+        if (end != null && !end.isBlank()) {
+            wrapper.le(MessageRecord::getCreateTime, end + " 23:59:59");
+        }
+
+        List<MessageRecord> list = recordMapper.selectList(wrapper);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("total", list.size());
+        resp.put("records", list);
+        return resp;
+    }
+
+    /**
+     * 获取用户所有用到过的分类列表（给前端筛选下拉）。
+     * GET /api/records/categories
+     */
+    @GetMapping("/records/categories")
+    public Map<String, Object> categories() {
+        Long userId = UserContext.getUserId();
+        List<MessageRecord> list = recordMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MessageRecord>()
+                        .eq(MessageRecord::getUserId, userId)
+                        .eq(MessageRecord::getDeleted, 0)
+                        .select(MessageRecord::getTransType)
+                        .groupBy(MessageRecord::getTransType)
+                        .isNotNull(MessageRecord::getTransType)
+                        .ne(MessageRecord::getTransType, "")
+        );
+        List<String> cats = list.stream()
+                .map(MessageRecord::getTransType)
+                .filter(c -> c != null && !c.isBlank())
+                .distinct()
+                .toList();
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("categories", cats);
+        return resp;
+    }
+
+    /**
+     * 导出 CSV（当前筛选条件）。
+     * GET /api/records/export?start=2025-08-01&end=2025-08-31&category=餐饮
+     */
+    @GetMapping(value = "/records/export", produces = "text/csv;charset=utf-8")
+    @org.springframework.web.bind.annotation.ResponseBody
+    public String exportCsv(
+            @RequestParam(required = false) String start,
+            @RequestParam(required = false) String end,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String direction) {
+
+        Long userId = UserContext.getUserId();
+        var wrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MessageRecord>()
+                .eq(MessageRecord::getUserId, userId)
+                .eq(MessageRecord::getDeleted, 0)
+                .orderByDesc(MessageRecord::getSortNum);
+
+        if (start != null && !start.isBlank()) wrapper.ge(MessageRecord::getCreateTime, start + " 00:00:00");
+        if (end != null && !end.isBlank()) wrapper.le(MessageRecord::getCreateTime, end + " 23:59:59");
+        if (category != null && !category.isBlank() && !"全部".equals(category)) wrapper.eq(MessageRecord::getTransType, category);
+        if (direction != null && !direction.isBlank() && !"全部".equals(direction)) wrapper.eq(MessageRecord::getDirection, direction);
+
+        List<MessageRecord> list = recordMapper.selectList(wrapper);
+
+        // UTF-8 BOM + CSV 表头
+        StringBuilder sb = new StringBuilder("\uFEFF序号,日期,方向,分类,商家,金额(元),余额(元),银行,尾号,渠道,交易时间\n");
+        int idx = 1;
+        for (MessageRecord r : list) {
+            sb.append(idx++).append(',')
+                    .append(csv(r.getCreateTime() != null ? r.getCreateTime().toString().substring(0, 10) : "")).append(',')
+                    .append(csv(r.getDirection())).append(',')
+                    .append(csv(r.getTransType())).append(',')
+                    .append(csv(r.getMerchant())).append(',')
+                    .append(r.getAmount() != null ? r.getAmount().toString() : "").append(',')
+                    .append(r.getBalance() != null ? r.getBalance().toString() : "").append(',')
+                    .append(csv(r.getBank())).append(',')
+                    .append(csv(r.getCardTail())).append(',')
+                    .append(csv(r.getChannel())).append(',')
+                    .append(csv(r.getHappenTime())).append('\n');
+        }
+        // 通过 response header 设置下载文件名由前端处理（用 blob + a 标签下载）
+        return sb.toString();
+    }
+
+    private static String csv(String s) {
+        if (s == null) return "";
+        s = s.replace("\"", "\"\"");
+        if (s.contains(",") || s.contains("\"") || s.contains("\n")) {
+            return "\"" + s + "\"";
+        }
+        return s;
+    }
+
+    /**
+     * 软删除（移到回收站）。
+     * PUT /api/records/{id}/trash
+     */
+    @PutMapping("/records/{id}/trash")
+    public Map<String, Object> trashRecord(@PathVariable Long id) {
+        MessageRecord record = recordMapper.selectById(id);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        if (record == null) {
+            resp.put("ok", false);
+            resp.put("msg", "记录不存在");
+            return resp;
+        }
+        Long userId = UserContext.getUserId();
+        if (record.getUserId() == null || !record.getUserId().equals(userId)) {
+            resp.put("ok", false);
+            resp.put("msg", "无权操作");
+            return resp;
+        }
+        record.setDeleted(1);
+        recordMapper.updateById(record);
+        resp.put("ok", true);
+        return resp;
+    }
+
+    /**
+     * 回收站列表。
+     * GET /api/records/trash
+     */
+    @GetMapping("/records/trash")
+    public Map<String, Object> trashList() {
+        Long userId = UserContext.getUserId();
+        List<MessageRecord> list = recordMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MessageRecord>()
+                        .eq(MessageRecord::getUserId, userId)
+                        .eq(MessageRecord::getDeleted, 1)
+                        .orderByDesc(MessageRecord::getUpdateTime)
+                        .last("LIMIT 500")
+        );
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("ok", true);
+        resp.put("total", list.size());
+        resp.put("records", list);
+        return resp;
+    }
+
+    /**
+     * 恢复回收站里的记录。
+     * PUT /api/records/{id}/restore
+     */
+    @PutMapping("/records/{id}/restore")
+    public Map<String, Object> restoreRecord(@PathVariable Long id) {
+        MessageRecord record = recordMapper.selectById(id);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        if (record == null) {
+            resp.put("ok", false);
+            resp.put("msg", "记录不存在");
+            return resp;
+        }
+        Long userId = UserContext.getUserId();
+        if (record.getUserId() == null || !record.getUserId().equals(userId)) {
+            resp.put("ok", false);
+            resp.put("msg", "无权操作");
+            return resp;
+        }
+        record.setDeleted(0);
+        recordMapper.updateById(record);
+        resp.put("ok", true);
+        return resp;
+    }
 }

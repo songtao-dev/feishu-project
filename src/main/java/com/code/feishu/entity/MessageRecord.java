@@ -66,6 +66,8 @@ public class MessageRecord {
 
     /** 飞书多维表格记录 ID（写表格成功后存下来，删除/更新时用） */
     private String bitableRecordId;
+    /** 软删除：0=正常 1=已删除 */
+    private Integer deleted;
 
     /** 处理状态：0=待处理 1=已处理 2=失败(进死信) —— 见状态常量 */
     private Integer status;

@@ -25,6 +25,8 @@ public class Todo {
     private Integer completed;
     private LocalDateTime completedAt;
     private Integer sortOrder;
+    /** 软删除：0=正常 1=已删除 */
+    private Integer deleted;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

@@ -49,6 +49,8 @@ public class Diary {
     private String weather;
     private String tags;
     private String status;   // draft=草稿(可编辑) / published=已发布(不可编辑)
+    /** 软删除：0=正常 1=已删除 */
+    private Integer deleted;
     private LocalDate diaryDate;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

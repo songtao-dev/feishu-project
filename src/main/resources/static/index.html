@@ -528,6 +528,12 @@
           <div class="field-item"><div class="label" style="font-size:12px; margin-bottom:4px;">渠道</div><input v-model="form.channel" class="input-box" placeholder="xx支付" /></div>
         </div>
         <div style="margin-top:12px;"><div class="label" style="font-size:12px; margin-bottom:4px;">商家</div><input v-model="form.merchant" class="input-box" placeholder="xx餐饮" /></div>
+        <div style="margin-top:12px;"><div class="label" style="font-size:12px; margin-bottom:4px;">分类</div>
+          <select v-model="form.transType" class="input-box">
+            <option value="">请选择分类（可选）</option>
+            <option v-for="c in defaultCategories" :key="c" :value="c">{{ c }}</option>
+          </select>
+        </div>
         <div style="margin-top:12px;"><div class="label" style="font-size:12px; margin-bottom:4px;">时间</div><input v-model="form.happenTime" class="input-box" placeholder="2026-08-01 19:48" /></div>
         <div class="field-grid" style="margin-top:12px;">
           <div class="field-item"><div class="label" style="font-size:12px; margin-bottom:4px;">银行</div><input v-model="form.bank" class="input-box" placeholder="xx银行" /></div>
@@ -587,6 +593,22 @@
           <button class="btn btn-text" @click="loadRecords" :disabled="recordsLoading">刷新</button>
         </div>
       </div>
+
+      <!-- 搜索+筛选条 -->
+      <div class="filter-bar">
+        <input v-model="searchKeyword" class="input-box filter-input" placeholder="搜索 商家/银行/渠道..." @keyup.enter="doSearchRecords" />
+        <select v-model="searchCategory" class="input-box filter-select">
+          <option value="全部">全部分类</option>
+          <option v-for="c in allCategories" :key="c" :value="c">{{ c }}</option>
+        </select>
+        <select v-model="searchDirection" class="input-box filter-select">
+          <option value="全部">全部方向</option>
+          <option value="支出">支出</option>
+          <option value="收入">收入</option>
+        </select>
+        <button class="btn btn-primary filter-btn" @click="doSearchRecords">搜索</button>
+      </div>
+
       <div v-if="records.length === 0 && !recordsLoading" class="empty">暂无记录</div>
       <div v-for="r in records" :key="r.id" class="record-item">
         <div class="record-row">
@@ -596,11 +618,11 @@
           <span :class="['record-amount', r.direction === '收入' ? 'income' : 'expense']">{{ r.direction === '收入' ? '+' : '-' }}¥{{ r.amount || '0' }}</span>
         </div>
         <div class="record-meta">
-          <span v-if="r.bank">{{ r.bank }}</span><span v-if="r.cardTail"> · 尾号{{ r.cardTail }}</span><span v-if="r.channel"> · {{ r.channel }}</span><span v-if="r.happenTime"> · {{ r.happenTime }}</span><span v-if="r.balance != null"> · 余额¥{{ r.balance }}</span>
+          <span v-if="r.bank">{{ r.bank }}</span><span v-if="r.cardTail"> · 尾号{{ r.cardTail }}</span><span v-if="r.channel"> · {{ r.channel }}</span><span v-if="r.transType"> · {{ r.transType }}</span><span v-if="r.happenTime"> · {{ r.happenTime }}</span><span v-if="r.balance != null"> · 余额¥{{ r.balance }}</span>
         </div>
         <div class="record-actions">
           <button class="btn-edit" @click="toggleEdit(r.id)">编辑</button>
-          <button class="btn-delete" @click="deleteRecord(r.id, r.merchant)">删除</button>
+          <button class="btn-delete" @click="trashRecord(r.id, r.merchant)">删除</button>
         </div>
         <div v-if="editingId === r.id" class="edit-panel">
           <div class="field-grid">
@@ -614,6 +636,15 @@
           <div class="field-grid">
             <div class="field-item"><div class="label" style="font-size:12px; margin-bottom:4px;">银行</div><input v-model="editForm.bank" class="input-box" /></div>
             <div class="field-item"><div class="label" style="font-size:12px; margin-bottom:4px;">余额</div><input v-model="editForm.balance" class="input-box" type="number" /></div>
+          </div>
+          <div class="field-grid" style="margin-top:10px;">
+            <div class="field-item" style="flex:1;">
+              <div class="label" style="font-size:12px; margin-bottom:4px;">分类</div>
+              <select v-model="editForm.transType" class="input-box">
+                <option value="">请选择</option>
+                <option v-for="c in ['餐饮','交通','购物','娱乐','医疗','教育','居家','其他']" :key="c" :value="c">{{ c }}</option>
+              </select>
+            </div>
           </div>
           <div style="margin-top:10px; display:flex; gap:8px;">
             <button class="btn btn-primary" style="padding:8px 16px; font-size:13px;" @click="saveEdit(r.id)">保存</button>
@@ -755,6 +786,24 @@
 
     <div class="diary-stat-row" v-if="diaryList.length > 0">
       本月 {{ diaryList.length }} 篇<template v-if="!currentGroupId"> · 坏心情 {{ diaryBadCount }} 篇 · 其他 {{ diaryList.length - diaryBadCount }} 篇</template>
+    </div>
+
+    <!-- 日记搜索筛选条 -->
+    <div class="filter-bar" style="margin: 0 14px 10px;">
+      <input v-model="diarySearchKeyword" class="input-box filter-input" placeholder="搜索日记标题/内容..." @keyup.enter="doSearchDiary" />
+      <select v-model="diarySearchMood" class="input-box filter-select">
+        <option value="全部">全部心情</option>
+        <option v-for="m in MOOD_LIST" :key="m.key" :value="m.key">{{ m.emoji }} {{ m.name }}</option>
+      </select>
+      <select v-model="diarySearchWeather" class="input-box filter-select">
+        <option value="全部">全部天气</option>
+        <option v-for="w in WEATHER_LIST" :key="w.key" :value="w.key">{{ w.emoji }} {{ w.name }}</option>
+      </select>
+      <button class="btn btn-primary filter-btn" @click="doSearchDiary">搜</button>
+    </div>
+    <div v-if="diarySearchKeyword || (diarySearchMood && diarySearchMood!=='全部') || (diarySearchWeather && diarySearchWeather!=='全部')" style="margin: 0 14px 8px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:12px; color:#888;">搜索结果 {{ diaryList.length }} 篇（仅私人日记）</span>
+      <button class="btn btn-text" style="font-size:12px; padding:0;" @click="resetDiarySearch">重置</button>
     </div>
 
     <div class="timeline-wrap" v-if="diaryList.length > 0">
@@ -915,6 +964,21 @@
   <!-- ===== 待办 tab ===== -->
   <template v-if="tab==='todo'">
     <div class="todo-page">
+      <!-- 搜索+状态筛选 -->
+      <div class="filter-bar" style="margin: 0 14px 10px;">
+        <input v-model="todoSearchKeyword" class="input-box filter-input" placeholder="搜索待办内容..." @keyup.enter="doSearchTodo" />
+        <select v-model="todoSearchCompleted" class="input-box filter-select" @change="doSearchTodo">
+          <option value="">全部状态</option>
+          <option value="0">未完成</option>
+          <option value="1">已完成</option>
+        </select>
+        <button class="btn btn-primary filter-btn" @click="doSearchTodo">搜</button>
+      </div>
+      <div v-if="todoSearchKeyword || todoSearchCompleted !== ''" style="margin: 0 14px 8px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12px; color:#888;">搜索结果 {{ (todoPending.length + todoDone.length) }} 条</span>
+        <button class="btn btn-text" style="font-size:12px; padding:0;" @click="resetTodoSearch">重置</button>
+      </div>
+
       <!-- 新建输入框（回车连续添加） -->
       <div class="todo-input-area">
         <div class="todo-input-circle"></div>
@@ -1001,6 +1065,21 @@
             <span class="arrow">›</span>
           </span>
         </div>
+        <div class="me-list-item me-list-clickable" @click="openExportCsv">
+          <span>📤 导出记账数据（CSV）</span>
+          <span class="arrow">›</span>
+        </div>
+        <div class="me-list-item me-list-clickable" @click="openTrashPanel">
+          <span>🗑️ 回收站</span>
+          <span class="item-value">
+            <template v-if="trashCounts">{{ trashCounts.records + trashCounts.diaries + trashCounts.todos }} 条</template>
+            <span class="arrow">›</span>
+          </span>
+        </div>
+        <div class="me-list-item me-list-clickable" @click="openChangePassword">
+          <span>🔐 修改密码</span>
+          <span class="arrow">›</span>
+        </div>
       </div>
       <div class="me-logout">
         <button class="btn btn-ghost btn-block" @click="logout">退出登录</button>
@@ -1054,6 +1133,144 @@
           <div class="publish-config-body">
             <input v-model="nicknameInput" class="nickname-input" maxlength="32" placeholder="输入新昵称" @keyup.enter="saveNickname" />
             <div class="config-tip">昵称最多32个字符</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 导出 CSV 弹层 -->
+      <div v-if="exportCsvVisible" class="publish-config-mask" @click="exportCsvVisible = false">
+        <div class="publish-config-panel" @click.stop>
+          <div class="publish-config-head">
+            <span @click="exportCsvVisible = false">取消</span>
+            <span class="title">导出记账数据</span>
+            <span class="save" @click="doExportCsv">导出</span>
+          </div>
+          <div class="publish-config-body">
+            <div class="config-row">
+              <span class="config-label">开始日期</span>
+              <input v-model="exportForm.start" class="nickname-input" type="date" placeholder="2026-01-01" />
+            </div>
+            <div class="config-row">
+              <span class="config-label">结束日期</span>
+              <input v-model="exportForm.end" class="nickname-input" type="date" placeholder="2026-12-31" />
+            </div>
+            <div class="config-row">
+              <span class="config-label">分类</span>
+              <select v-model="exportForm.category" class="input-box">
+                <option value="全部">全部分类</option>
+                <option v-for="c in defaultCategories" :key="c" :value="c">{{ c }}</option>
+              </select>
+            </div>
+            <div class="config-row">
+              <span class="config-label">方向</span>
+              <select v-model="exportForm.direction" class="input-box">
+                <option value="全部">全部</option>
+                <option value="支出">支出</option>
+                <option value="收入">收入</option>
+              </select>
+            </div>
+            <div class="config-tip">留空日期则导出全部符合条件的记录</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 回收站弹层 -->
+      <div v-if="trashPanelVisible" class="publish-config-mask" @click="trashPanelVisible = false">
+        <div class="publish-config-panel" style="max-height: 80vh;" @click.stop>
+          <div class="publish-config-head">
+            <span @click="trashPanelVisible = false">关闭</span>
+            <span class="title">回收站</span>
+            <span style="width:30px;"></span>
+          </div>
+          <div class="publish-config-body" style="overflow-y:auto;">
+            <div class="sub-tabs" style="padding: 0 0 8px; border-bottom: 1px solid #f0f0f0; margin-bottom: 12px;">
+              <div :class="['sub-tab', trashTab==='records' && 'active']" @click="trashTab='records'">记账 ({{ trashRecords.length }})</div>
+              <div :class="['sub-tab', trashTab==='diaries' && 'active']" @click="trashTab='diaries'">日记 ({{ trashDiaries.length }})</div>
+              <div :class="['sub-tab', trashTab==='todos' && 'active']" @click="trashTab='todos'">待办 ({{ trashTodos.length }})</div>
+            </div>
+
+            <!-- 记账回收站 -->
+            <template v-if="trashTab==='records'">
+              <div v-if="trashRecords.length === 0" class="empty">回收站空空如也</div>
+              <div v-for="r in trashRecords" :key="r.id" class="record-item">
+                <div class="record-row">
+                  <span class="record-num">#{{ r.sortNum || r.id }}</span>
+                  <span :class="['record-tag', r.direction === '收入' ? 'tag-income' : 'tag-expense']">{{ r.direction || '支出' }}</span>
+                  <span class="record-merchant">{{ r.merchant || '未知' }}</span>
+                  <span :class="['record-amount', r.direction === '收入' ? 'income' : 'expense']">{{ r.direction === '收入' ? '+' : '-' }}¥{{ r.amount || '0' }}</span>
+                </div>
+                <div class="record-meta">
+                  <span v-if="r.bank">{{ r.bank }}</span><span v-if="r.happenTime"> · {{ r.happenTime }}</span><span v-if="r.transType"> · {{ r.transType }}</span>
+                </div>
+                <div class="record-actions">
+                  <button class="btn-edit" @click="restoreRecord(r.id)">恢复</button>
+                </div>
+              </div>
+            </template>
+
+            <!-- 日记回收站 -->
+            <template v-if="trashTab==='diaries'">
+              <div v-if="trashDiaries.length === 0" class="empty">回收站空空如也</div>
+              <div v-for="d in trashDiaries" :key="d.id" class="record-item">
+                <div class="record-row">
+                  <span class="record-num">#{{ d.id }}</span>
+                  <span class="record-merchant" style="flex:1;">{{ d.title || '无题' }}</span>
+                  <span class="record-amount" style="color:#666; font-size:13px;">{{ d.diaryDate }}</span>
+                </div>
+                <div class="record-meta">
+                  <span v-if="d.moodEmoji">{{ d.moodEmoji }} {{ d.moodName || d.mood }}</span>
+                  <span v-if="d.weatherEmoji"> · {{ d.weatherEmoji }}</span>
+                </div>
+                <div class="record-actions">
+                  <button class="btn-edit" @click="restoreDiary(d.id)">恢复</button>
+                </div>
+              </div>
+            </template>
+
+            <!-- 待办回收站 -->
+            <template v-if="trashTab==='todos'">
+              <div v-if="trashTodos.length === 0" class="empty">回收站空空如也</div>
+              <div v-for="t in trashTodos" :key="t.id" class="record-item">
+                <div class="record-row">
+                  <span class="record-num">#{{ t.id }}</span>
+                  <span class="record-merchant" style="flex:1;">{{ t.content }}</span>
+                </div>
+                <div class="record-meta">
+                  <span>{{ t.completed === 1 ? '已完成' : '未完成' }}</span>
+                  <span v-if="t.updateTime"> · {{ String(t.updateTime).substring(0,16) }}</span>
+                </div>
+                <div class="record-actions">
+                  <button class="btn-edit" @click="restoreTodo(t.id)">恢复</button>
+                </div>
+              </div>
+            </template>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- 修改密码弹层 -->
+      <div v-if="changePwdVisible" class="publish-config-mask" @click="changePwdVisible = false">
+        <div class="publish-config-panel" @click.stop>
+          <div class="publish-config-head">
+            <span @click="changePwdVisible = false">取消</span>
+            <span class="title">修改密码</span>
+            <span class="save" @click="saveChangePassword">保存</span>
+          </div>
+          <div class="publish-config-body">
+            <div class="config-row">
+              <span class="config-label">原密码</span>
+              <input v-model="changePwdForm.old" class="nickname-input" type="password" placeholder="请输入原密码" />
+            </div>
+            <div class="config-row">
+              <span class="config-label">新密码</span>
+              <input v-model="changePwdForm.newPwd" class="nickname-input" type="password" placeholder="至少6位" />
+            </div>
+            <div class="config-row">
+              <span class="config-label">确认新密码</span>
+              <input v-model="changePwdForm.confirm" class="nickname-input" type="password" placeholder="再次输入新密码" />
+            </div>
+            <div class="config-tip">密码至少6位，请妥善保管</div>
           </div>
         </div>
       </div>
@@ -1456,12 +1673,106 @@
         }
       };
 
+      // ===== 导出 CSV =====
+      const exportCsvVisible = ref(false);
+      const exportForm = reactive({ start: '', end: '', category: '全部', direction: '全部' });
+      const openExportCsv = () => { exportCsvVisible.value = true; };
+      const doExportCsv = async () => {
+        try {
+          const params = new URLSearchParams();
+          if (exportForm.start) params.append('start', exportForm.start);
+          if (exportForm.end) params.append('end', exportForm.end);
+          if (exportForm.category && exportForm.category !== '全部') params.append('category', exportForm.category);
+          if (exportForm.direction && exportForm.direction !== '全部') params.append('direction', exportForm.direction);
+          const resp = await apiFetch('/api/records/export?' + params.toString());
+          const csv = await resp.text();
+          if (!csv || csv.startsWith('{')) { vant.showToast({ type: 'fail', message: '导出失败' }); return; }
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          const ymd = new Date().toISOString().slice(0,10);
+          a.download = `记账记录_${ymd}.csv`;
+          document.body.appendChild(a); a.click();
+          setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 100);
+          vant.showToast({ type: 'success', message: '导出成功' });
+          exportCsvVisible.value = false;
+        } catch (e) { vant.showToast({ type: 'fail', message: '导出失败' }); }
+      };
+
+      // ===== 修改密码 =====
+      const changePwdVisible = ref(false);
+      const changePwdForm = reactive({ old: '', newPwd: '', confirm: '' });
+      const openChangePassword = () => {
+        Object.assign(changePwdForm, { old: '', newPwd: '', confirm: '' });
+        changePwdVisible.value = true;
+      };
+      const saveChangePassword = async () => {
+        if (!changePwdForm.old) { vant.showToast('请输入原密码'); return; }
+        if (!changePwdForm.newPwd || changePwdForm.newPwd.length < 6) { vant.showToast('新密码至少6位'); return; }
+        if (changePwdForm.newPwd !== changePwdForm.confirm) { vant.showToast('两次密码不一致'); return; }
+        try {
+          const resp = await apiFetch('/api/user/password', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oldPassword: changePwdForm.old, newPassword: changePwdForm.newPwd })
+          });
+          const data = await resp.json();
+          if (data.ok) {
+            vant.showToast({ type: 'success', message: '密码修改成功' });
+            changePwdVisible.value = false;
+          } else { vant.showToast({ type: 'fail', message: data.msg || '修改失败' }); }
+        } catch (e) { vant.showToast({ type: 'fail', message: '网络错误' }); }
+      };
+
+      // ===== 回收站 =====
+      const trashPanelVisible = ref(false);
+      const trashTab = ref('records');
+      const trashRecords = ref([]), trashDiaries = ref([]), trashTodos = ref([]);
+      const trashCounts = Vue.computed(() => ({ records: trashRecords.value.length, diaries: trashDiaries.value.length, todos: trashTodos.value.length }));
+      const openTrashPanel = async () => {
+        trashPanelVisible.value = true; trashTab.value = 'records';
+        try {
+          const [r1, r2, r3] = await Promise.all([
+            apiFetch('/api/records/trash'), apiFetch('/api/diary/trash'), apiFetch('/api/todo/trash')
+          ]);
+          const d1 = await r1.json(), d2 = await r2.json(), d3 = await r3.json();
+          if (d1.ok) trashRecords.value = d1.records || [];
+          if (d2.ok) trashDiaries.value = d2.list || [];
+          if (d3.ok) trashTodos.value = d3.list || [];
+        } catch {}
+      };
+      const restoreRecord = async (id) => {
+        try {
+          const resp = await apiFetch(`/api/records/${id}/restore`, { method: 'PUT' });
+          const data = await resp.json();
+          if (data.ok) { vant.showToast({ type: 'success', message: '已恢复' }); trashRecords.value = trashRecords.value.filter(r => r.id !== id); }
+        } catch {}
+      };
+      const restoreDiary = async (id) => {
+        try {
+          const resp = await apiFetch(`/api/diary/${id}/restore`, { method: 'PUT' });
+          const data = await resp.json();
+          if (data.ok) { vant.showToast({ type: 'success', message: '已恢复' }); trashDiaries.value = trashDiaries.value.filter(d => d.id !== id); }
+        } catch {}
+      };
+      const restoreTodo = async (id) => {
+        try {
+          const resp = await apiFetch(`/api/todo/${id}/restore`, { method: 'PUT' });
+          const data = await resp.json();
+          if (data.ok) { vant.showToast({ type: 'success', message: '已恢复' }); trashTodos.value = trashTodos.value.filter(t => t.id !== id); }
+        } catch {}
+      };
+
       // ===== 待办模块（仿小米记事本）=====
       const todoInput = ref('');
       const todoPending = ref([]);
       const todoDone = ref([]);
       const todoEditing = ref(null);
       const todoEditText = ref('');
+      // 待办搜索
+      const todoSearchKeyword = ref('');
+      const todoSearchCompleted = ref('');
 
       const loadTodos = async () => {
         try {
@@ -1472,6 +1783,27 @@
             todoDone.value = data.done || [];
           }
         } catch (e) { /* 静默 */ }
+      };
+      // 搜索待办
+      const doSearchTodo = async () => {
+        try {
+          const params = new URLSearchParams();
+          if (todoSearchKeyword.value) params.append('keyword', todoSearchKeyword.value);
+          if (todoSearchCompleted.value !== '') params.append('completed', todoSearchCompleted.value);
+          params.append('limit', '300');
+          const resp = await apiFetch('/api/todo/search?' + params.toString());
+          const data = await resp.json();
+          if (data.ok) {
+            todoPending.value = []; todoDone.value = [];
+            for (const t of (data.list || [])) {
+              if (t.completed === 1) todoDone.value.push(t); else todoPending.value.push(t);
+            }
+          }
+        } catch (e) { vant.showToast({ type: 'fail', message: '搜索失败' }); }
+      };
+      const resetTodoSearch = () => {
+        todoSearchKeyword.value = ''; todoSearchCompleted.value = '';
+        loadTodos();
       };
 
       const addTodo = async () => {
@@ -1557,7 +1889,8 @@
         }
       });
 
-      const EMPTY_FORM = () => ({ rawMessage: '', bank: '', cardTail: '', happenTime: '', direction: '', channel: '', merchant: '', amount: null, balance: null });
+      const EMPTY_FORM = () => ({ rawMessage: '', bank: '', cardTail: '', happenTime: '', direction: '', channel: '', merchant: '', amount: null, balance: null, transType: '' });
+      const defaultCategories = ['餐饮', '交通', '购物', '娱乐', '医疗', '教育', '居家', '工资', '红包', '其他'];
       const form = reactive(EMPTY_FORM());
       const parsing = ref(false), sending = ref(false), parseTip = ref(''), lastStatus = ref('');
       const mode = ref('single');
@@ -1566,9 +1899,12 @@
       const batchText = ref(''), batchParsing = ref(false), batchSending = ref(false), batchPreview = ref([]);
       const aiParsing = ref(false);
       const records = ref([]), recordsLoading = ref(false);
+      // 搜索+筛选
+      const searchKeyword = ref(''), searchCategory = ref('全部'), searchDirection = ref('全部');
+      const allCategories = ref([]);
       const aiCommandInput = ref(''), aiReply = ref(''), aiReplyError = ref(false), aiCommanding = ref(false);
       const editingId = ref(null);
-      const editForm = reactive({ merchant: '', amount: '', direction: '', channel: '', bank: '', balance: '' });
+      const editForm = reactive({ merchant: '', amount: '', direction: '', channel: '', bank: '', balance: '', transType: '' });
       const statsRange = ref('month'), statsSummary = ref(null), statsCompare = ref(null);
       const statsDaily = ref([]), statsCategory = ref([]);
       let trendChart = null, categoryChart = null, compareChart = null;
@@ -1644,12 +1980,45 @@
         finally { parsing.value = false; }
       };
 
-      const switchRecords = () => { mode.value = 'records'; loadRecords(); };
+      const switchRecords = () => { mode.value = 'records'; loadRecords(); loadCategories(); };
       const loadRecords = async () => {
         recordsLoading.value = true;
         try { const resp = await apiFetch('/api/records?limit=50'); const data = await resp.json(); if (data.ok) records.value = data.records || []; }
         catch { vant.showToast({ type: 'fail', message: '加载失败' }); }
         finally { recordsLoading.value = false; }
+      };
+      // 加载分类列表
+      const loadCategories = async () => {
+        try {
+          const resp = await apiFetch('/api/records/categories');
+          const data = await resp.json();
+          if (data.ok) allCategories.value = data.categories || [];
+        } catch {}
+      };
+      // 搜索记录
+      const doSearchRecords = async () => {
+        recordsLoading.value = true;
+        try {
+          const params = new URLSearchParams();
+          if (searchKeyword.value) params.append('keyword', searchKeyword.value);
+          if (searchCategory.value) params.append('category', searchCategory.value);
+          if (searchDirection.value) params.append('direction', searchDirection.value);
+          params.append('limit', '200');
+          const resp = await apiFetch('/api/records/search?' + params.toString());
+          const data = await resp.json();
+          if (data.ok) records.value = data.records || [];
+        } catch { vant.showToast({ type: 'fail', message: '搜索失败' }); }
+        finally { recordsLoading.value = false; }
+      };
+      // 软删除（移到回收站）
+      const trashRecord = async (id, merchant) => {
+        try {
+          await vant.showConfirmDialog({ title: '移到回收站', message: '确定把「' + (merchant || '#' + id) + '」移到回收站？（可在回收站恢复）' });
+          const resp = await apiFetch('/api/records/' + id + '/trash', { method: 'PUT' });
+          const data = await resp.json();
+          if (data.ok) { vant.showToast({ type: 'success', message: '已移入回收站' }); loadRecords(); }
+          else vant.showToast({ type: 'fail', message: data.msg || '操作失败' });
+        } catch (e) { if (e !== 'cancel' && e.message !== 'cancel') vant.showToast({ type: 'fail', message: '操作失败' }); }
       };
 
       const deleteRecord = async (id, merchant) => {
@@ -1665,7 +2034,7 @@
       const toggleEdit = (id) => {
         if (editingId.value === id) { editingId.value = null; return; }
         const r = records.value.find(x => x.id === id);
-        if (r) { Object.assign(editForm, { merchant: r.merchant || '', amount: r.amount || '', direction: r.direction || '', channel: r.channel || '', bank: r.bank || '', balance: r.balance || '' }); editingId.value = id; }
+        if (r) { Object.assign(editForm, { merchant: r.merchant || '', amount: r.amount || '', direction: r.direction || '', channel: r.channel || '', bank: r.bank || '', balance: r.balance || '', transType: r.transType || '' }); editingId.value = id; }
       };
 
       const saveEdit = async (id) => {
@@ -1770,6 +2139,8 @@
       const diarySortDesc = ref(true);   // true=倒序(31→1)，false=正序
       const diaryList = ref([]);          // 月度所有日记（预览对象）
       const diaryLoading = ref(false);
+      // 日记搜索筛选
+      const diarySearchKeyword = ref(''), diarySearchMood = ref('全部'), diarySearchWeather = ref('全部');
 
       // 日记详情/表单弹层
       const diaryPreviewVisible = ref(false);
@@ -1839,6 +2210,30 @@
           if (data.ok) diaryList.value = data.diaries || [];
         } catch (e) { if (e.message !== '401') vant.showToast({ type: 'fail', message: '加载失败' }); }
         finally { diaryLoading.value = false; }
+      };
+      // 日记搜索
+      const doSearchDiary = async () => {
+        if (currentGroupId.value) { vant.showToast('共享日记暂不支持搜索'); return; }
+        diaryLoading.value = true;
+        try {
+          const params = new URLSearchParams();
+          if (diarySearchKeyword.value) params.append('keyword', diarySearchKeyword.value);
+          if (diarySearchMood.value && diarySearchMood.value !== '全部') params.append('mood', diarySearchMood.value);
+          if (diarySearchWeather.value && diarySearchWeather.value !== '全部') params.append('weather', diarySearchWeather.value);
+          const ym = `${diaryYear.value}-${String(diaryMonth.value).padStart(2,'0')}`;
+          params.append('start', `${ym}-01`);
+          const lastDay = new Date(diaryYear.value, diaryMonth.value, 0).getDate();
+          params.append('end', `${ym}-${String(lastDay).padStart(2,'0')}`);
+          params.append('limit', '300');
+          const resp = await apiFetch('/api/diary/search?' + params.toString());
+          const data = await resp.json();
+          if (data.ok) diaryList.value = data.list || [];
+        } catch (e) { if (e.message !== '401') vant.showToast({ type: 'fail', message: '搜索失败' }); }
+        finally { diaryLoading.value = false; }
+      };
+      const resetDiarySearch = () => {
+        diarySearchKeyword.value = ''; diarySearchMood.value = '全部'; diarySearchWeather.value = '全部';
+        loadDiaryMonthly();
       };
 
       // 月份切换
@@ -2396,6 +2791,22 @@
         doLogin, logout, copySmsKey,
         publishConfig, publishConfigVisible, openPublishConfig, savePublishConfig,
         nicknameEditVisible, openNicknameEdit, saveNickname, nicknameInput,
+        // 导出 CSV
+        exportCsvVisible, exportForm, openExportCsv, doExportCsv,
+        defaultCategories,
+        // 修改密码
+        changePwdVisible, changePwdForm, openChangePassword, saveChangePassword,
+        // 回收站
+        trashPanelVisible, trashTab, trashRecords, trashDiaries, trashTodos, trashCounts,
+        openTrashPanel, restoreRecord, restoreDiary, restoreTodo,
+        // 记账搜索/筛选/分类/回收站
+        searchKeyword, searchCategory, searchDirection, allCategories,
+        loadCategories, doSearchRecords, trashRecord,
+        // 日记搜索
+        diarySearchKeyword, diarySearchMood, diarySearchWeather,
+        doSearchDiary, resetDiarySearch,
+        // 待办搜索
+        todoSearchKeyword, todoSearchCompleted, doSearchTodo, resetTodoSearch,
         todoInput, todoPending, todoDone, todoEditing, todoEditText,
         loadTodos, addTodo, toggleTodo, deleteTodo, startEditTodo, saveEditTodo,
         // 主 tab + 页面标题
