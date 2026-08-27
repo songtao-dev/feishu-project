@@ -37,8 +37,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/login",                // 登录接口
                         "/api/ping",                 // 健康检查
                         "/api/sms",                  // SmsForwarder 用 sms_key 认证，不走 JWT
-                        "/api/register",             // 注册接口（已关闭，但预留路径避免被拦截）
-                        "/api/reset-admin-password"  // 临时：重置 admin 密码（排错用，排完把这行删掉）
+                        "/api/register"              // 注册接口（已关闭，但预留路径避免被拦截）
                 );
     }
 }

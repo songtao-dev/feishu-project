@@ -18,6 +18,11 @@
   .input-box { width: 100%; border: 1px solid #e8e8e8; border-radius: 12px; padding: 14px; font-size: 14px; line-height: 1.6; box-sizing: border-box; background: #fafafa; transition: border-color .2s, background .2s; outline: none; resize: none; font-family: inherit; }
   .input-box:focus { border-color: #d0d0d0; background: #fff; }
   .input-box::placeholder { color: #ccc; }
+  /* 日期选择器专用样式 */
+  input[type="date"].input-box { padding: 8px 12px; height: 42px; line-height: 1.4; background-color: #fff; cursor: pointer; }
+  input[type="date"].input-box::-webkit-date-and-time-value { text-align: left; font-size: 14px; color: #333; }
+  input[type="date"].input-box::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; transition: opacity 0.15s; }
+  input[type="date"].input-box::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   textarea.input-box { min-height: 120px; }
   .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .field-item .input-box { padding: 10px 12px; }
@@ -38,11 +43,18 @@
   .filter-bar .filter-input::placeholder { color: #b0b0b0; }
   .filter-bar .filter-input:hover { border-color: #d8d8d8; }
   .filter-bar .filter-input:focus { border-color: #1a1a1a; box-shadow: 0 0 0 3px rgba(26,26,26,0.06); background-color: #fff; }
-  .filter-bar .filter-select { appearance: none; -webkit-appearance: none; height: 38px; border: 1px solid #ececec; border-radius: 10px; padding: 0 30px 0 12px; font-size: 13px; line-height: 1.5; background-color: #fff; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 12px 12px; cursor: pointer; color: #444; transition: border-color .15s, background-color .15s; flex-shrink: 0; box-sizing: border-box; outline: none; }
-  .filter-bar .filter-select:hover { border-color: #d8d8d8; background-color: #fafafa; }
-  .filter-bar .filter-select:focus { border-color: #1a1a1a; box-shadow: 0 0 0 3px rgba(26,26,26,0.06); }
-  .filter-bar .filter-btn { height: 38px; background: #1a1a1a; color: #fff; border: none; border-radius: 10px; padding: 0 18px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s, transform .1s; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
-  .filter-bar .filter-btn:hover { background: #2a2a2a; }
+  .filter-bar .filter-select { appearance: none; -webkit-appearance: none; -moz-appearance: none; height: 38px; border: 1px solid #e8e8e8; border-radius: 10px; padding: 0 36px 0 14px; font-size: 13px; line-height: 1.5; background-color: #fafafa; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 10px 10px; cursor: pointer; color: #333; font-weight: 400; transition: all .2s ease; flex-shrink: 0; box-sizing: border-box; outline: none; min-width: 100px; -webkit-tap-highlight-color: transparent; }
+  .filter-bar .filter-select:hover { border-color: #d0d0d0; background-color: #f5f5f5; }
+  .filter-bar .filter-select:focus { border-color: #1a1a1a; box-shadow: 0 0 0 3px rgba(26,26,26,0.08); background-color: #fff; }
+  .filter-bar .filter-select option { padding: 10px 14px !important; background: #fff !important; color: #333 !important; font-size: 14px !important; font-weight: 400; line-height: 1.6; min-height: 36px; }
+  .filter-bar .filter-select option:checked { background: #1a1a1a !important; color: #fff !important; }
+  /* 移动端下拉框优化 */
+  @media (max-width: 768px) {
+    .filter-bar .filter-select { font-size: 15px; height: 40px; padding: 0 36px 0 12px; min-width: 90px; }
+    .filter-bar .filter-select option { font-size: 15px; padding: 12px 14px !important; min-height: 44px; }
+  }
+  .filter-bar .filter-btn { height: 38px; background: #1a1a1a; color: #fff; border: none; border-radius: 10px; padding: 0 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s ease; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; letter-spacing: 0.5px; }
+  .filter-bar .filter-btn:hover { background: #2a2a2a; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
   .filter-bar .filter-btn:active { transform: scale(.97); }
   .filter-bar .filter-btn:disabled { opacity: .5; cursor: not-allowed; }
   /* 筛选结果状态行 */
@@ -154,15 +166,17 @@
   .diary-month-bar .sort-btn:active { background: #f5f5f5; }
 
   /* 月历选择面板：紧贴 month-bar 下方居中，z-index 高于时间轴 */
-  .calendar-panel { position: absolute; top: calc(100% + 8px); left: 16px; right: 16px; background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); z-index: 60; padding: 16px; box-sizing: border-box; }
+  .calendar-panel { position: absolute; top: calc(100% + 8px); left: 16px; right: 16px; background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); z-index: 60; padding: 16px; box-sizing: border-box; max-width: calc(100vw - 32px); }
   .calendar-panel .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .calendar-panel .cal-nav { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e8e8e8; background: #fff; color: #666; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .calendar-panel .cal-nav { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e8e8e8; background: #fff; color: #666; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .calendar-panel .cal-nav:hover { background: #f5f5f5; color: #1a1a1a; }
   .calendar-panel .cal-title { font-size: 16px; font-weight: 600; color: #1a1a1a; }
   .calendar-panel .cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 6px; }
   .calendar-panel .cal-week > div { text-align: center; font-size: 11px; color: #999; padding: 4px 0; font-weight: 500; }
   .calendar-panel .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-  .calendar-panel .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 8px; cursor: pointer; color: #333; transition: all .15s; position: relative; }
-  .calendar-panel .cal-day.empty { cursor: default; }
+  .calendar-panel .cal-day { width: 100%; padding-top: 100%; position: relative; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 8px; cursor: pointer; color: #333; transition: all .15s; background: #fff; }
+  .calendar-panel .cal-day > span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .calendar-panel .cal-day.empty { cursor: default; pointer-events: none; background: transparent; }
   .calendar-panel .cal-day:not(.empty):hover { background: #f5f5f5; }
   .calendar-panel .cal-day.selected { background: #1a1a1a; color: #fff; }
   .calendar-panel .cal-day.today { border: 1px solid #1a1a1a; }
@@ -423,6 +437,93 @@
   .todo-edit-head .title { font-size: 16px; font-weight: 600; color: #1a1a1a; }
   .todo-edit-head .save { color: #1a1a1a; font-weight: 600; font-size: 15px; cursor: pointer; }
 
+  /* ===== 记事本模块（仿小米记事本）===== */
+  .todo-subtabs { display: flex; gap: 6px; padding: 0 20px 16px; }
+  .todo-subtab { padding: 6px 18px; border-radius: 18px; font-size: 14px; color: #999; cursor: pointer; transition: all .15s; }
+  .todo-subtab.active { color: #fff; background: #1a1a1a; }
+
+  /* 分类标签条 */
+  .note-cat-bar { display: flex; gap: 8px; padding: 0 20px 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .note-cat-bar::-webkit-scrollbar { display: none; }
+  .note-cat-chip { flex-shrink: 0; padding: 6px 14px; border-radius: 16px; font-size: 13px; color: #666; background: #fff; border: 1px solid #eee; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 6px; }
+  .note-cat-chip:active { transform: scale(0.96); }
+  .note-cat-chip.active { color: #fff; border-color: transparent; }
+  .note-cat-chip .cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .note-cat-chip .cat-count { font-size: 11px; opacity: 0.7; }
+  .note-cat-chip.add { color: #bbb; border-style: dashed; }
+
+  /* 记事列表 */
+  .note-list { padding: 0 20px 100px; }
+  .note-card { background: #fff; border-radius: 14px; padding: 16px 18px; margin-bottom: 10px; border: 1px solid #f0f0f0; transition: all .15s; cursor: pointer; position: relative; }
+  .note-card:active { transform: scale(0.99); background: #fafafa; }
+  .note-card.pinned { border-color: #ffe0b2; background: linear-gradient(135deg, #fffde7 0%, #fff 60%); }
+  .note-card-head { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+  .note-card-title { flex: 1; font-size: 16px; font-weight: 600; color: #1a1a1a; line-height: 1.4; word-break: break-word; }
+  .note-card-title.empty { color: #ccc; font-weight: 400; }
+  .note-card-badges { display: flex; gap: 4px; flex-shrink: 0; }
+  .note-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; line-height: 1.3; }
+  .note-badge.pin { background: #fff3e0; color: #e65100; }
+  .note-badge.cat { color: #fff; }
+  .note-card-preview { font-size: 14px; color: #888; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; white-space: pre-wrap; }
+  .note-card-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .note-card-time { font-size: 12px; color: #bbb; }
+  .note-star { margin-left: auto; font-size: 18px; color: #ddd; cursor: pointer; line-height: 1; }
+  .note-star.on { color: #ffb300; }
+
+  /* 记事空态 */
+  .note-empty { text-align: center; padding: 80px 20px; color: #ccc; }
+  .note-empty-icon { width: 56px; height: 56px; border-radius: 50%; background: #f5f5f5; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; font-size: 26px; }
+  .note-empty-text { font-size: 15px; color: #999; margin-bottom: 6px; }
+  .note-empty-sub { font-size: 12px; color: #ccc; }
+
+  /* 记事新建浮动按钮 */
+  .note-fab { position: fixed; right: 24px; bottom: 90px; width: 52px; height: 52px; border-radius: 50%; background: #1a1a1a; color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.2); cursor: pointer; z-index: 50; transition: transform .15s; }
+  .note-fab:active { transform: scale(0.92); }
+
+  /* 记事编辑弹层 */
+  .note-edit-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: flex; align-items: flex-end; justify-content: center; }
+  .note-edit-sheet { width: 100%; max-width: 500px; background: #fff; border-radius: 20px 20px 0 0; padding: 16px 20px 24px; max-height: 90vh; overflow-y: auto; animation: slideUp .25s ease; }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .note-edit-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .note-edit-head .title { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+  .note-edit-head .actions { display: flex; gap: 16px; }
+  .note-edit-head .action { font-size: 15px; cursor: pointer; }
+  .note-edit-head .action.save { color: #1a1a1a; font-weight: 600; }
+  .note-edit-head .action.delete { color: #e53935; }
+  .note-title-input { width: 100%; border: none; outline: none; font-size: 18px; font-weight: 600; color: #1a1a1a; padding: 8px 0; border-bottom: 1px solid #f0f0f0; margin-bottom: 12px; font-family: inherit; }
+  .note-title-input::placeholder { color: #ddd; font-weight: 400; }
+  .note-content-input { width: 100%; border: none; outline: none; font-size: 15px; color: #333; line-height: 1.8; min-height: 200px; resize: none; font-family: inherit; }
+  .note-content-input::placeholder { color: #ccc; }
+  .note-edit-meta { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #f5f5f5; }
+  .note-meta-cat { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #666; padding: 6px 12px; background: #f5f5f5; border-radius: 16px; cursor: pointer; }
+  .note-meta-cat .cat-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .note-meta-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #666; padding: 6px 12px; border-radius: 16px; cursor: pointer; transition: all .15s; }
+  .note-meta-toggle.on { background: #fff3e0; color: #e65100; }
+  .note-meta-toggle.off { background: #f5f5f5; color: #999; }
+
+  /* 分类管理弹层 */
+  .note-cat-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 210; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .note-cat-dialog { width: 100%; max-width: 380px; background: #fff; border-radius: 16px; padding: 20px; }
+  .note-cat-dialog .title { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 16px; text-align: center; }
+  .note-cat-dialog .field { margin-bottom: 12px; }
+  .note-cat-dialog .field-label { font-size: 12px; color: #999; margin-bottom: 6px; }
+  .note-cat-dialog input { width: 100%; border: 1px solid #eee; border-radius: 10px; padding: 10px 12px; font-size: 14px; outline: none; font-family: inherit; }
+  .note-cat-dialog input:focus { border-color: #1a1a1a; }
+  .note-color-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .note-color-dot { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all .15s; }
+  .note-color-dot.active { border-color: #1a1a1a; transform: scale(1.1); }
+  .note-cat-dialog .btns { display: flex; gap: 10px; margin-top: 18px; }
+  .note-cat-dialog .btn { flex: 1; padding: 10px; border-radius: 10px; font-size: 14px; cursor: pointer; text-align: center; border: none; }
+  .note-cat-dialog .btn.cancel { background: #f5f5f5; color: #666; }
+  .note-cat-dialog .btn.confirm { background: #1a1a1a; color: #fff; }
+
+  /* 记事回收站 */
+  .note-trash-item { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: #fff; border-radius: 12px; margin-bottom: 6px; }
+  .note-trash-item .info { flex: 1; min-width: 0; }
+  .note-trash-item .t-title { font-size: 14px; font-weight: 500; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .note-trash-item .t-time { font-size: 11px; color: #bbb; margin-top: 2px; }
+  .note-trash-item .restore { font-size: 13px; color: #1a1a1a; font-weight: 500; cursor: pointer; padding: 6px 12px; background: #f5f5f5; border-radius: 14px; }
+
   /* ===== 日迹模块 ===== */
   .daily-header { display: flex; align-items: center; gap: 10px; padding: 12px 20px 8px; position: relative; }
   .daily-nav-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #e8e8e8; background: #fff; color: #666; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
@@ -631,10 +732,6 @@
 
     <!-- 记录模式 -->
     <template v-if="mode==='records'">
-      <div v-if="smsKey" class="sms-tip">
-        短信转发密钥：<span class="sms-copy" @click="copySmsKey">{{ smsKey }}</span><br />
-        SmsForwarder webhook URL 末尾加 ?token={{ smsKey }}
-      </div>
       <div class="ai-section">
         <div class="label" style="margin-bottom:10px;">助手</div>
         <div class="ai-input-row">
@@ -798,7 +895,7 @@
                         day === diarySelectedDay ? 'selected' : '',
                         calendarHasDiary(day) ? 'has-diary' : '']"
                @click="selectCalDay(day)">
-            {{ day || '' }}
+            <span>{{ day || '' }}</span>
           </div>
         </div>
       </div>
@@ -856,7 +953,7 @@
         <option value="全部">全部天气</option>
         <option v-for="w in WEATHER_LIST" :key="w.key" :value="w.key">{{ w.emoji }} {{ w.name }}</option>
       </select>
-      <button class="btn btn-primary filter-btn" @click="doSearchDiary">搜</button>
+      <button class="btn btn-primary filter-btn" @click="doSearchDiary">搜索</button>
     </div>
     <div v-if="diarySearchKeyword || (diarySearchMood && diarySearchMood!=='全部') || (diarySearchWeather && diarySearchWeather!=='全部')" class="filter-status">
       <span>搜索结果 {{ diaryList.length }} 篇（仅私人日记）</span>
@@ -880,7 +977,7 @@
             </div>
             <div class="card-media" v-if="d.coverImage || d.voiceCount">
               <div v-if="d.coverImage" class="card-media-images">
-                <img :src="d.coverImage" />
+                <img :src="d.coverImage" loading="lazy" @error="e => e.target.style.display='none'" />
               </div>
               <div v-if="d.voiceCount" class="card-media-voice">
                 <span>🎙</span>
@@ -909,7 +1006,7 @@
             </div>
             <div class="card-media" v-if="d.coverImage || d.voiceCount">
               <div v-if="d.coverImage" class="card-media-images">
-                <img :src="d.coverImage" />
+                <img :src="d.coverImage" loading="lazy" @error="e => e.target.style.display='none'" />
               </div>
               <div v-if="d.voiceCount" class="card-media-voice">
                 <span>🎙</span>
@@ -961,7 +1058,7 @@
                       day === dailyTodayDay && dailyCalYear === dailyTodayYear && dailyCalMonth === dailyTodayMonth ? 'today' : '',
                       day === dailySelectedDay ? 'selected' : '']"
              @click="selectDailyCalDay(day)">
-          {{ day || '' }}
+          <span>{{ day || '' }}</span>
         </div>
       </div>
     </div>
@@ -1042,7 +1139,14 @@
 
   <!-- ===== 待办 tab ===== -->
   <template v-if="tab==='todo'">
-    <div class="todo-page">
+    <!-- 子 tab 切换：待办 | 记事本 -->
+    <div class="todo-subtabs">
+      <div :class="['todo-subtab', todoSubTab==='todo' && 'active']" @click="switchTodoSub('todo')">待办</div>
+      <div :class="['todo-subtab', todoSubTab==='note' && 'active']" @click="switchTodoSub('note')">记事本</div>
+    </div>
+
+    <!-- ===== 待办子页 ===== -->
+    <div v-if="todoSubTab==='todo'" class="todo-page">
       <!-- 搜索+状态筛选 -->
       <div class="filter-bar" style="margin: 0 14px 10px;">
         <input v-model="todoSearchKeyword" class="input-box filter-input" placeholder="搜索待办内容..." @keyup.enter="doSearchTodo" />
@@ -1051,7 +1155,7 @@
           <option value="0">未完成</option>
           <option value="1">已完成</option>
         </select>
-        <button class="btn btn-primary filter-btn" @click="doSearchTodo">搜</button>
+        <button class="btn btn-primary filter-btn" @click="doSearchTodo">搜索</button>
       </div>
       <div v-if="todoSearchKeyword || todoSearchCompleted !== ''" class="filter-status">
         <span>搜索结果 {{ (todoPending.length + todoDone.length) }} 条</span>
@@ -1116,6 +1220,130 @@
         </div>
       </div>
     </div>
+
+    <!-- ===== 记事本子页 ===== -->
+    <div v-if="todoSubTab==='note'">
+      <!-- 搜索 + 收藏筛选 -->
+      <div class="filter-bar" style="margin: 0 14px 10px;">
+        <input v-model="noteSearchKeyword" class="input-box filter-input" placeholder="搜索记事..." @keyup.enter="doSearchNote" />
+        <select v-model="noteFilterStarred" class="input-box filter-select" @change="loadNotes">
+          <option value="">全部</option>
+          <option value="1">收藏</option>
+        </select>
+        <button class="btn btn-primary filter-btn" @click="doSearchNote">搜索</button>
+      </div>
+
+      <!-- 分类标签条 -->
+      <div class="note-cat-bar">
+        <div :class="['note-cat-chip', noteFilterCategory === null && 'active']"
+             :style="noteFilterCategory === null ? 'background:#1a1a1a' : ''"
+             @click="noteFilterCategory = null; loadNotes()">
+          全部
+        </div>
+        <div v-for="c in noteCategories" :key="c.id"
+             :class="['note-cat-chip', noteFilterCategory === c.id && 'active']"
+             :style="noteFilterCategory === c.id ? 'background:' + (c.color||'#1a1a1a') : ''"
+             @click="noteFilterCategory = c.id; loadNotes()">
+          <span class="cat-dot" :style="'background:' + (c.color||'#1a1a1a')"></span>
+          {{ c.name }}
+          <span class="cat-count">{{ c.noteCount }}</span>
+        </div>
+        <div class="note-cat-chip add" @click="openCategoryDialog(null)">+ 分类</div>
+      </div>
+
+      <!-- 记事列表 -->
+      <div class="note-list">
+        <div v-for="n in noteList" :key="n.id"
+             :class="['note-card', n.pinned === 1 && 'pinned']"
+             @click="openNoteEdit(n)">
+          <div class="note-card-head">
+            <div :class="['note-card-title', !n.title && 'empty']">{{ n.title || '无标题' }}</div>
+            <div class="note-card-badges">
+              <span v-if="n.pinned === 1" class="note-badge pin">置顶</span>
+              <span v-if="n.categoryId && noteCatMap[n.categoryId]" class="note-badge cat"
+                    :style="'background:' + (noteCatMap[n.categoryId].color||'#1a1a1a')">
+                {{ noteCatMap[n.categoryId].name }}
+              </span>
+            </div>
+          </div>
+          <div v-if="n.content" class="note-card-preview">{{ n.content }}</div>
+          <div class="note-card-foot">
+            <span class="note-card-time">{{ formatNoteTime(n.updateTime || n.createTime) }}</span>
+            <span :class="['note-star', n.starred === 1 && 'on']" @click.stop="toggleNoteStar(n)">
+              {{ n.starred === 1 ? '★' : '☆' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- 空态 -->
+        <div v-if="noteList.length === 0" class="note-empty">
+          <div class="note-empty-icon">📝</div>
+          <div class="note-empty-text">暂无记事</div>
+          <div class="note-empty-sub">点击右下角 + 新建记事</div>
+        </div>
+      </div>
+
+      <!-- 新建浮动按钮 -->
+      <div class="note-fab" @click="openNoteEdit(null)">+</div>
+
+      <!-- 记事编辑弹层 -->
+      <div v-if="noteEditing" class="note-edit-mask" @click.self="noteEditing = null">
+        <div class="note-edit-sheet" @click.stop>
+          <div class="note-edit-head">
+            <span class="action delete" v-if="noteForm.id" @click="deleteNote">删除</span>
+            <span class="title">{{ noteForm.id ? '编辑记事' : '新建记事' }}</span>
+            <span class="action save" @click="saveNote">保存</span>
+          </div>
+          <input v-model="noteForm.title" class="note-title-input" placeholder="标题" maxlength="100" />
+          <textarea v-model="noteForm.content" class="note-content-input" placeholder="写点什么..." maxlength="10000"></textarea>
+          <div class="note-edit-meta">
+            <div class="note-meta-cat" @click="showCatPicker = !showCatPicker">
+              <span class="cat-dot" :style="noteForm.categoryId && noteCatMap[noteForm.categoryId] ? 'background:' + noteCatMap[noteForm.categoryId].color : 'background:#ccc'"></span>
+              {{ noteForm.categoryId && noteCatMap[noteForm.categoryId] ? noteCatMap[noteForm.categoryId].name : '选分类' }}
+            </div>
+            <div :class="['note-meta-toggle', noteForm.pinned === 1 ? 'on' : 'off']" @click="noteForm.pinned = noteForm.pinned === 1 ? 0 : 1">
+              📌 {{ noteForm.pinned === 1 ? '已置顶' : '置顶' }}
+            </div>
+            <div :class="['note-meta-toggle', noteForm.starred === 1 ? 'on' : 'off']" @click="noteForm.starred = noteForm.starred === 1 ? 0 : 1">
+              ★ {{ noteForm.starred === 1 ? '已收藏' : '收藏' }}
+            </div>
+          </div>
+          <!-- 分类快选 -->
+          <div v-if="showCatPicker" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+            <div @click="noteForm.categoryId = null; showCatPicker = false"
+                 style="padding:4px 12px;border-radius:12px;font-size:12px;background:#f5f5f5;color:#999;cursor:pointer;">无</div>
+            <div v-for="c in noteCategories" :key="c.id" @click="noteForm.categoryId = c.id; showCatPicker = false"
+                 :style="'padding:4px 12px;border-radius:12px;font-size:12px;cursor:pointer;color:#fff;background:' + (c.color||'#1a1a1a')">
+              {{ c.name }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分类管理弹层 -->
+      <div v-if="categoryDialog" class="note-cat-mask" @click.self="categoryDialog = null">
+        <div class="note-cat-dialog">
+          <div class="title">{{ categoryForm.id ? '编辑分类' : '新建分类' }}</div>
+          <div class="field">
+            <div class="field-label">分类名</div>
+            <input v-model="categoryForm.name" placeholder="如：生活" maxlength="20" />
+          </div>
+          <div class="field">
+            <div class="field-label">颜色</div>
+            <div class="note-color-row">
+              <div v-for="c in noteColorPresets" :key="c"
+                   :class="['note-color-dot', categoryForm.color === c && 'active']"
+                   :style="'background:' + c"
+                   @click="categoryForm.color = c"></div>
+            </div>
+          </div>
+          <div class="btns">
+            <button class="btn cancel" @click="categoryDialog = null">取消</button>
+            <button class="btn confirm" @click="saveCategory">确定</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </template><!-- ===== /待办 tab ===== -->
 
   <!-- ===== 我的 tab ===== -->
@@ -1143,10 +1371,6 @@
             {{ publishConfig.enabled ? `${publishConfig.publishHour}:00` : '未启用' }}
             <span class="arrow">›</span>
           </span>
-        </div>
-        <div class="me-list-item me-list-clickable" @click="openExportCsv">
-          <span>📤 导出记账数据（CSV）</span>
-          <span class="arrow">›</span>
         </div>
         <div class="me-list-item me-list-clickable" @click="openTrashPanel">
           <span>🗑️ 回收站</span>
@@ -1212,43 +1436,6 @@
           <div class="publish-config-body">
             <input v-model="nicknameInput" class="nickname-input" maxlength="32" placeholder="输入新昵称" @keyup.enter="saveNickname" />
             <div class="config-tip">昵称最多32个字符</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 导出 CSV 弹层 -->
-      <div v-if="exportCsvVisible" class="publish-config-mask" @click="exportCsvVisible = false">
-        <div class="publish-config-panel" @click.stop>
-          <div class="publish-config-head">
-            <span @click="exportCsvVisible = false">取消</span>
-            <span class="title">导出记账数据</span>
-            <span class="save" @click="doExportCsv">导出</span>
-          </div>
-          <div class="publish-config-body">
-            <div class="config-row">
-              <span class="config-label">开始日期</span>
-              <input v-model="exportForm.start" class="nickname-input" type="date" placeholder="2026-01-01" />
-            </div>
-            <div class="config-row">
-              <span class="config-label">结束日期</span>
-              <input v-model="exportForm.end" class="nickname-input" type="date" placeholder="2026-12-31" />
-            </div>
-            <div class="config-row">
-              <span class="config-label">分类</span>
-              <select v-model="exportForm.category" class="input-box">
-                <option value="全部">全部分类</option>
-                <option v-for="c in defaultCategories" :key="c" :value="c">{{ c }}</option>
-              </select>
-            </div>
-            <div class="config-row">
-              <span class="config-label">方向</span>
-              <select v-model="exportForm.direction" class="input-box">
-                <option value="全部">全部</option>
-                <option value="支出">支出</option>
-                <option value="收入">收入</option>
-              </select>
-            </div>
-            <div class="config-tip">留空日期则导出全部符合条件的记录</div>
           </div>
         </div>
       </div>
@@ -1399,7 +1586,7 @@
         <!-- 媒体展示：图片 + 语音 -->
         <div class="preview-media" v-if="diaryPreview.media && diaryPreview.media.length">
           <div class="preview-media-images" v-if="diaryPreview.media.filter(m => m.type === 1).length">
-            <img v-for="m in diaryPreview.media.filter(m => m.type === 1)" :key="m.id" :src="m.url" @click="previewImages(diaryPreview.media, m.url)" />
+            <img v-for="m in diaryPreview.media.filter(m => m.type === 1)" :key="m.id" :src="m.url" loading="lazy" @click="previewImages(diaryPreview.media, m.url)" @error="e => e.target.style.display='none'" />
           </div>
           <div v-for="m in diaryPreview.media.filter(m => m.type === 2)" :key="m.id" class="preview-voice-player">
             <button class="preview-voice-play" @click="playPreviewVoice">{{ previewVoicePlaying ? '❚❚' : '▶' }}</button>
@@ -1500,7 +1687,7 @@
         <div class="media-upload-grid">
           <!-- 已有图片（编辑模式） -->
           <div v-for="(img, idx) in diaryFormExistingImages" :key="'old-'+img.id" class="media-thumb">
-            <img :src="img.url" @click="previewFormImage(img.url)" />
+            <img :src="img.url" loading="lazy" @click="previewFormImage(img.url)" @error="e => e.target.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23ccc%22 font-size=%2212%22%3E图片加载失败%3C/text%3E%3C/svg%3E'" />
             <button v-if="diaryForm.status !== 'published'" class="thumb-remove" @click="removeExistingMedia(img.id)">×</button>
           </div>
           <!-- 新选的图片 -->
@@ -1810,33 +1997,6 @@
         }
       };
 
-      // ===== 导出 CSV =====
-      const exportCsvVisible = ref(false);
-      const exportForm = reactive({ start: '', end: '', category: '全部', direction: '全部' });
-      const openExportCsv = () => { exportCsvVisible.value = true; };
-      const doExportCsv = async () => {
-        try {
-          const params = new URLSearchParams();
-          if (exportForm.start) params.append('start', exportForm.start);
-          if (exportForm.end) params.append('end', exportForm.end);
-          if (exportForm.category && exportForm.category !== '全部') params.append('category', exportForm.category);
-          if (exportForm.direction && exportForm.direction !== '全部') params.append('direction', exportForm.direction);
-          const resp = await apiFetch('/api/records/export?' + params.toString());
-          const csv = await resp.text();
-          if (!csv || csv.startsWith('{')) { vant.showToast({ type: 'fail', message: '导出失败' }); return; }
-          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          const ymd = new Date().toISOString().slice(0,10);
-          a.download = `记账记录_${ymd}.csv`;
-          document.body.appendChild(a); a.click();
-          setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 100);
-          vant.showToast({ type: 'success', message: '导出成功' });
-          exportCsvVisible.value = false;
-        } catch (e) { vant.showToast({ type: 'fail', message: '导出失败' }); }
-      };
-
       // ===== 修改密码 =====
       const changePwdVisible = ref(false);
       const changePwdForm = reactive({ old: '', newPwd: '', confirm: '' });
@@ -2016,6 +2176,192 @@
         } catch (e) {
           vant.showToast({ type: 'fail', message: '网络错误' });
         }
+      };
+
+      // ===== 记事本模块（仿小米记事本）=====
+      const todoSubTab = ref('todo');   // 'todo' | 'note'
+      const noteList = ref([]);
+      const noteCategories = ref([]);
+      const noteCatMap = ref({});
+      const noteSearchKeyword = ref('');
+      const noteFilterStarred = ref('');
+      const noteFilterCategory = ref(null);
+      const noteEditing = ref(false);
+      const noteForm = reactive({ id: null, title: '', content: '', categoryId: null, pinned: 0, starred: 0 });
+      const showCatPicker = ref(false);
+      // 分类管理
+      const categoryDialog = ref(false);
+      const categoryForm = reactive({ id: null, name: '', color: '#1a1a1a' });
+      const noteColorPresets = ['#1a1a1a', '#ff7043', '#42a5f5', '#66bb6a', '#ab47bc', '#ec407a', '#ffa726', '#26a69a'];
+
+      const switchTodoSub = (s) => {
+        todoSubTab.value = s;
+        if (s === 'note') { loadNoteCategories(); loadNotes(); }
+      };
+
+      const loadNoteCategories = async () => {
+        try {
+          const resp = await apiFetch('/api/note-category');
+          const data = await resp.json();
+          if (data.ok) {
+            noteCategories.value = data.list || [];
+            const map = {};
+            for (const c of noteCategories.value) { map[c.id] = c; }
+            noteCatMap.value = map;
+          }
+        } catch (e) { /* 静默 */ }
+      };
+
+      const loadNotes = async () => {
+        try {
+          const params = new URLSearchParams();
+          if (noteFilterCategory.value !== null) params.append('categoryId', noteFilterCategory.value);
+          if (noteFilterStarred.value !== '') params.append('starred', noteFilterStarred.value);
+          const resp = await apiFetch('/api/note?' + params.toString());
+          const data = await resp.json();
+          if (data.ok) { noteList.value = data.list || []; }
+        } catch (e) { /* 静默 */ }
+      };
+
+      const doSearchNote = async () => {
+        if (!noteSearchKeyword.value.trim()) { loadNotes(); return; }
+        try {
+          const params = new URLSearchParams();
+          params.append('keyword', noteSearchKeyword.value.trim());
+          if (noteFilterCategory.value !== null) params.append('categoryId', noteFilterCategory.value);
+          if (noteFilterStarred.value !== '') params.append('starred', noteFilterStarred.value);
+          const resp = await apiFetch('/api/note/search?' + params.toString());
+          const data = await resp.json();
+          if (data.ok) { noteList.value = data.list || []; }
+        } catch (e) { vant.showToast({ type: 'fail', message: '搜索失败' }); }
+      };
+
+      const openNoteEdit = (n) => {
+        if (n) {
+          noteForm.id = n.id;
+          noteForm.title = n.title || '';
+          noteForm.content = n.content || '';
+          noteForm.categoryId = n.categoryId || null;
+          noteForm.pinned = n.pinned || 0;
+          noteForm.starred = n.starred || 0;
+        } else {
+          noteForm.id = null;
+          noteForm.title = '';
+          noteForm.content = '';
+          noteForm.categoryId = noteFilterCategory.value;  // 默认带上当前筛选的分类
+          noteForm.pinned = 0;
+          noteForm.starred = 0;
+        }
+        showCatPicker.value = false;
+        noteEditing.value = true;
+      };
+
+      const saveNote = async () => {
+        const title = noteForm.title.trim();
+        const content = noteForm.content.trim();
+        if (!title && !content) {
+          vant.showToast({ type: 'fail', message: '标题和内容不能同时为空' });
+          return;
+        }
+        try {
+          const body = { title, content, categoryId: noteForm.categoryId, pinned: noteForm.pinned, starred: noteForm.starred };
+          let resp;
+          if (noteForm.id) {
+            resp = await apiFetch(`/api/note/${noteForm.id}`, {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+            });
+          } else {
+            resp = await apiFetch('/api/note', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+            });
+          }
+          const data = await resp.json();
+          if (data.ok) {
+            noteEditing.value = false;
+            await loadNotes();
+            await loadNoteCategories();
+          } else {
+            vant.showToast({ type: 'fail', message: data.msg || '保存失败' });
+          }
+        } catch (e) {
+          vant.showToast({ type: 'fail', message: '网络错误' });
+        }
+      };
+
+      const deleteNote = async () => {
+        if (!noteForm.id) return;
+        try {
+          const resp = await apiFetch(`/api/note/${noteForm.id}`, { method: 'DELETE' });
+          const data = await resp.json();
+          if (data.ok) {
+            noteEditing.value = false;
+            await loadNotes();
+            await loadNoteCategories();
+          } else {
+            vant.showToast({ type: 'fail', message: data.msg || '删除失败' });
+          }
+        } catch (e) { vant.showToast({ type: 'fail', message: '网络错误' }); }
+      };
+
+      const toggleNoteStar = async (n) => {
+        try {
+          const resp = await apiFetch(`/api/note/${n.id}/star`, { method: 'PUT' });
+          const data = await resp.json();
+          if (data.ok) { n.starred = data.starred; }
+        } catch (e) { /* 静默 */ }
+      };
+
+      const openCategoryDialog = (c) => {
+        if (c) {
+          categoryForm.id = c.id;
+          categoryForm.name = c.name;
+          categoryForm.color = c.color || '#1a1a1a';
+        } else {
+          categoryForm.id = null;
+          categoryForm.name = '';
+          categoryForm.color = '#1a1a1a';
+        }
+        categoryDialog.value = true;
+      };
+
+      const saveCategory = async () => {
+        const name = categoryForm.name.trim();
+        if (!name) { vant.showToast({ type: 'fail', message: '分类名不能为空' }); return; }
+        try {
+          const body = { name, color: categoryForm.color };
+          let resp;
+          if (categoryForm.id) {
+            resp = await apiFetch(`/api/note-category/${categoryForm.id}`, {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+            });
+          } else {
+            resp = await apiFetch('/api/note-category', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+            });
+          }
+          const data = await resp.json();
+          if (data.ok) {
+            categoryDialog.value = false;
+            await loadNoteCategories();
+          } else {
+            vant.showToast({ type: 'fail', message: data.msg || '保存失败' });
+          }
+        } catch (e) { vant.showToast({ type: 'fail', message: '网络错误' }); }
+      };
+
+      const formatNoteTime = (t) => {
+        if (!t) return '';
+        const d = new Date(t.replace(/-/g, '/'));
+        const now = new Date();
+        const diff = (now - d) / 1000;
+        if (diff < 60) return '刚刚';
+        if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
+        if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
+        if (diff < 172800) return '昨天';
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        if (d.getFullYear() === now.getFullYear()) return `${mm}-${dd}`;
+        return `${d.getFullYear()}-${mm}-${dd}`;
       };
 
       // 已登录状态（刷新页面后）自动加载 sms_key 和发布配置
@@ -2246,7 +2592,11 @@
         if (t === 'account') { pageTitle.value = '记账'; }
         else if (t === 'diary') { pageTitle.value = '日记'; loadGroupList(); loadPendingList(); loadDiaryMonthly(); }
         else if (t === 'daily') { pageTitle.value = '日迹'; loadDaily(); }
-        else if (t === 'todo') { pageTitle.value = '待办'; loadTodos(); }
+        else if (t === 'todo') {
+          pageTitle.value = '待办';
+          if (todoSubTab.value === 'note') { loadNoteCategories(); loadNotes(); }
+          else { loadTodos(); }
+        }
         else if (t === 'me') { pageTitle.value = '我的'; }
       };
 
@@ -3134,8 +3484,6 @@
         doLogin, logout, copySmsKey,
         publishConfig, publishConfigVisible, openPublishConfig, savePublishConfig,
         nicknameEditVisible, openNicknameEdit, saveNickname, nicknameInput,
-        // 导出 CSV
-        exportCsvVisible, exportForm, openExportCsv, doExportCsv,
         defaultCategories,
         // 修改密码
         changePwdVisible, changePwdForm, openChangePassword, saveChangePassword,
@@ -3152,6 +3500,12 @@
         todoSearchKeyword, todoSearchCompleted, doSearchTodo, resetTodoSearch,
         todoInput, todoPending, todoDone, todoEditing, todoEditText,
         loadTodos, addTodo, toggleTodo, deleteTodo, startEditTodo, saveEditTodo,
+        // 记事本
+        todoSubTab, switchTodoSub,
+        noteList, noteCategories, noteCatMap, noteSearchKeyword, noteFilterStarred, noteFilterCategory,
+        noteEditing, noteForm, showCatPicker, categoryDialog, categoryForm, noteColorPresets,
+        loadNotes, doSearchNote, openNoteEdit, saveNote, deleteNote, toggleNoteStar,
+        openCategoryDialog, saveCategory, formatNoteTime,
         // 主 tab + 页面标题
         tab, inputMode, pageTitle, switchTab,
         // 记账

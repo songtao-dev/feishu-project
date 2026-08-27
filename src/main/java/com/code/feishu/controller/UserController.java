@@ -158,34 +158,6 @@ public class UserController {
     }
 
     /**
-     * 临时调试接口：重置 admin 密码（排查登录失败用）。
-     * GET /api/reset-admin-password?raw=admin123
-     * 会把 admin 的密码重置为 raw 参数指定的明文。
-     * 调试完请删除此接口或保持关闭。
-     */
-    @GetMapping("/reset-admin-password")
-    public Map<String, Object> resetAdminPassword(@RequestParam(defaultValue = "admin123") String raw) {
-        Map<String, Object> resp = new LinkedHashMap<>();
-        User user = userMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<User>()
-                        .eq(User::getUsername, "admin")
-        );
-        if (user == null) {
-            resp.put("ok", false);
-            resp.put("msg", "admin 用户不存在");
-            return resp;
-        }
-        String newHash = passwordEncoder.encode(raw);
-        user.setPassword(newHash);
-        userMapper.updateById(user);
-        resp.put("ok", true);
-        resp.put("msg", "密码已重置");
-        resp.put("newPassword", raw);
-        resp.put("newHash", newHash);
-        return resp;
-    }
-
-    /**
      * 修改密码（已登录用户）。
      * PUT /api/user/password
      * body: { "oldPassword": "xxx", "newPassword": "yyy" }
